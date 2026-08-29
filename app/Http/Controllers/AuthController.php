@@ -114,12 +114,10 @@ class AuthController extends Controller
 
         $inviteCodeStr = strtoupper(trim($validated['invite_key']));
         $dbInvite = \App\Models\Invitecode::where('code', $inviteCodeStr)->first();
-        if ($dbInvite) {
-            if (!$dbInvite->isValid()) {
-                return back()->withErrors([
-                    'invite_key' => 'This invite code is expired, inactive, or has already been claimed.'
-                ])->withInput();
-            }
+        if (!$dbInvite || !$dbInvite->isValid()) {
+            return back()->withErrors([
+                'invite_key' => 'Invalid, expired, or already claimed Invite Code. Please obtain a valid clearance key.'
+            ])->withInput();
         }
 
         $user = User::create([
@@ -130,15 +128,54 @@ class AuthController extends Controller
             'invite_key' => $inviteCodeStr,
         ]);
 
-        if ($dbInvite) {
-            $dbInvite->markAsUsed($user);
-        }
+        $dbInvite->markAsUsed($user);
 
         Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()->route('dashboard')
             ->with('status', "INITIALIZATION COMPLETE // Clearance granted. Welcome to Mainframe, {$user->name}");
+    }
+
+    /**
+     * AJAX endpoint to check if email already exists in system.
+     */
+    public function checkEmail(Request $request)
+    {
+        $email = trim((string) $request->query('email'));
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['valid' => false, 'exists' => false, 'message' => 'Please enter a valid email format.']);
+        }
+
+        $exists = User::where('email', $email)->exists();
+
+        return response()->json([
+            'valid' => true,
+            'exists' => $exists,
+            'message' => $exists ? 'This identity email is already registered.' : 'Email is available.',
+        ]);
+    }
+
+    /**
+     * AJAX endpoint to check invite code validity.
+     */
+    public function checkInvite(Request $request)
+    {
+        $code = strtoupper(trim((string) $request->query('code')));
+        if (!$code) {
+            return response()->json(['valid' => false, 'message' => 'Invite code required.']);
+        }
+
+        $invite = \App\Models\Invitecode::where('code', $code)->first();
+        if (!$invite) {
+            return response()->json(['valid' => false, 'message' => 'Invalid or unrecognized Invite Code.']);
+        }
+
+        if (!$invite->isValid()) {
+            return response()->json(['valid' => false, 'message' => 'Invite code is expired or already claimed.']);
+        }
+
+        return response()->json(['valid' => true, 'message' => 'Invite code verified and valid.']);
     }
 
     /**

@@ -22,6 +22,9 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+
+    Route::get('/auth/check-email', [AuthController::class, 'checkEmail'])->name('auth.check-email');
+    Route::get('/auth/check-invite', [AuthController::class, 'checkInvite'])->name('auth.check-invite');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
