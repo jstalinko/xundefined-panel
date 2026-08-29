@@ -1,0 +1,246 @@
+@extends('layouts.dashboard')
+
+@section('title', 'Edit Product: ' . $product->name . ' - Admin')
+@section('page-title', 'EDIT PRODUCT')
+
+@section('content')
+{{-- Breadcrumbs & Back Bar --}}
+<div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+        <a href="{{ route('admin.dashboard') }}" style="color: var(--text-secondary); text-decoration: none;">Admin Hub</a>
+        <span>/</span>
+        <a href="{{ route('product.index') }}" style="color: var(--text-secondary); text-decoration: none;">Products</a>
+        <span>/</span>
+        <span style="color: #ffffff;">Edit #{{ $product->id }}</span>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ route('product.show', $product->id) }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+            <i class="fa-solid fa-eye"></i> VIEW
+        </a>
+        <a href="{{ route('product.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> BACK
+        </a>
+    </div>
+</div>
+
+{{-- Validation Errors --}}
+@if ($errors->any())
+    <div class="cyber-alert" role="alert" style="border-color: var(--red-primary); background: rgba(255, 23, 68, 0.1); margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation cyber-alert-icon" style="color: var(--red-primary);"></i>
+        <div class="cyber-alert-content">
+            <span class="cyber-alert-title" style="color: var(--red-primary);">VALIDATION ERROR</span>
+            <ul style="margin: 4px 0 0 16px; font-size: 0.82rem; color: #ff80ab;">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
+<form action="{{ route('product.update', $product->id) }}" method="POST" id="productEditForm">
+    @csrf
+    @method('PUT')
+
+    <div class="cyber-panel">
+        <div class="cyber-panel-header">
+            <div class="cyber-panel-title">
+                <i class="fa-solid fa-cube"></i>
+                EDIT PRODUCT #{{ $product->id }}: {{ $product->name }}
+            </div>
+            @if ($product->active)
+                <span class="badge-status b-ok">ACTIVE</span>
+            @else
+                <span class="badge-status b-err">INACTIVE</span>
+            @endif
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="split-grid">
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="name">
+                        <i class="fa-solid fa-tag"></i> PRODUCT NAME *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        class="cyber-input" 
+                        placeholder="e.g. X-Sentinel Threat Bot" 
+                        value="{{ old('name', $product->name) }}" 
+                        required
+                    >
+                </div>
+
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="price">
+                        <i class="fa-solid fa-money-bill"></i> PRICE (IDR) *
+                    </label>
+                    <input 
+                        type="number" 
+                        id="price" 
+                        name="price" 
+                        class="cyber-input" 
+                        placeholder="e.g. 175000" 
+                        value="{{ old('price', $product->price) }}" 
+                        min="0" 
+                        step="1000" 
+                        required
+                    >
+                </div>
+            </div>
+
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="description">
+                        <i class="fa-solid fa-align-left"></i> DESCRIPTION
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        class="cyber-input" 
+                        rows="4" 
+                        placeholder="Detailed overview of capabilities, architecture, and tool specifications..."
+                    >{{ old('description', $product->description) }}</textarea>
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 14px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
+                        <input type="checkbox" name="active" value="1" {{ old('active', $product->active) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--red-primary);">
+                        <span>ACTIVE (Visible in Store for users to buy)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Dynamic Release Versions Box --}}
+    @php
+        $releases = is_array($product->contents) && count($product->contents) > 0 
+            ? $product->contents 
+            : [[
+                'file' => strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $product->name)) . '-v1.0.0.zip',
+                'version' => '1.0.0',
+                'changelog' => 'Standard release package.',
+                'md5sum' => md5(uniqid())
+            ]];
+    @endphp
+
+    <div class="cyber-panel" style="margin-top: 20px;">
+        <div class="cyber-panel-header">
+            <div class="cyber-panel-title">
+                <i class="fa-solid fa-code-branch"></i>
+                RELEASES & DOWNLOADABLE PACKAGES
+            </div>
+            <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-sm" onclick="addReleaseRow()">
+                <i class="fa-solid fa-plus"></i> ADD RELEASE VERSION
+            </button>
+        </div>
+
+        <div id="releasesContainer" style="display: flex; flex-direction: column; gap: 16px;">
+            @foreach ($releases as $idx => $rel)
+                <div class="release-row-card" style="background: rgba(14, 11, 16, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+                        <span style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: var(--red-primary);">
+                            <i class="fa-solid fa-file-zipper"></i> RELEASE PACKAGE #{{ $idx + 1 }}
+                        </span>
+                        <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="padding: 2px 8px; color: var(--text-muted);" onclick="removeReleaseRow(this)">
+                            <i class="fa-solid fa-xmark"></i> Remove
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 12px;" class="release-fields-grid">
+                        <div>
+                            <label class="cyber-label" style="font-size: 0.7rem;">FILE NAME *</label>
+                            <input type="text" name="releases[{{ $idx }}][file]" class="cyber-input" placeholder="e.g. package-v1.0.0.zip" value="{{ $rel['file'] ?? 'package.zip' }}" required>
+                        </div>
+                        <div>
+                            <label class="cyber-label" style="font-size: 0.7rem;">VERSION TAG *</label>
+                            <input type="text" name="releases[{{ $idx }}][version]" class="cyber-input" placeholder="e.g. 1.0.0" value="{{ $rel['version'] ?? '1.0.0' }}" required>
+                        </div>
+                        <div>
+                            <label class="cyber-label" style="font-size: 0.7rem;">MD5 CHECKSUM</label>
+                            <input type="text" name="releases[{{ $idx }}][md5sum]" class="cyber-input" placeholder="e.g. a9f1b2c3d4e5f60718293a4b5c6d7e8f" value="{{ $rel['md5sum'] ?? '' }}">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <label class="cyber-label" style="font-size: 0.7rem;">CHANGELOG / RELEASE NOTES</label>
+                        <input type="text" name="releases[{{ $idx }}][changelog]" class="cyber-input" placeholder="e.g. Added enhancements." value="{{ $rel['changelog'] ?? '' }}">
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Form Action Buttons --}}
+    <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+        <a href="{{ route('product.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-md">
+            CANCEL
+        </a>
+        <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-md">
+            <i class="fa-solid fa-floppy-disk"></i> SAVE CHANGES
+        </button>
+    </div>
+</form>
+@endsection
+
+@push('scripts')
+<script>
+    let releaseIndex = {{ count($releases) }};
+
+    function addReleaseRow() {
+        const container = document.getElementById('releasesContainer');
+        const count = container.querySelectorAll('.release-row-card').length + 1;
+        const randomMd5 = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const rowHtml = `
+            <div class="release-row-card" style="background: rgba(14, 11, 16, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+                    <span style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: var(--red-primary);">
+                        <i class="fa-solid fa-file-zipper"></i> RELEASE PACKAGE #${count}
+                    </span>
+                    <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="padding: 2px 8px; color: var(--text-muted);" onclick="removeReleaseRow(this)">
+                        <i class="fa-solid fa-xmark"></i> Remove
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr 2fr; gap: 12px;" class="release-fields-grid">
+                    <div>
+                        <label class="cyber-label" style="font-size: 0.7rem;">FILE NAME *</label>
+                        <input type="text" name="releases[${releaseIndex}][file]" class="cyber-input" placeholder="e.g. package-v${releaseIndex}.0.0.zip" value="package-v${releaseIndex}.0.0.zip" required>
+                    </div>
+                    <div>
+                        <label class="cyber-label" style="font-size: 0.7rem;">VERSION TAG *</label>
+                        <input type="text" name="releases[${releaseIndex}][version]" class="cyber-input" placeholder="e.g. ${releaseIndex}.0.0" value="${releaseIndex}.0.0" required>
+                    </div>
+                    <div>
+                        <label class="cyber-label" style="font-size: 0.7rem;">MD5 CHECKSUM</label>
+                        <input type="text" name="releases[${releaseIndex}][md5sum]" class="cyber-input" placeholder="e.g. a9f1b2c3d4e5f60718293a4b5c6d7e8f" value="${randomMd5}">
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <label class="cyber-label" style="font-size: 0.7rem;">CHANGELOG / RELEASE NOTES</label>
+                    <input type="text" name="releases[${releaseIndex}][changelog]" class="cyber-input" placeholder="e.g. Added enhancements." value="Release version updates.">
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', rowHtml);
+        releaseIndex++;
+    }
+
+    function removeReleaseRow(btn) {
+        const container = document.getElementById('releasesContainer');
+        const rows = container.querySelectorAll('.release-row-card');
+        if (rows.length <= 1) {
+            alert('At least one release package is required.');
+            return;
+        }
+        btn.closest('.release-row-card').remove();
+    }
+</script>
+@endpush

@@ -1,0 +1,347 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Domain;
+use App\Models\Order;
+use App\Models\Post;
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class DashboardController extends Controller
+{
+    /**
+     * Display the cyber red dashboard.
+     */
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+
+        // System overview statistics
+        $stats = [
+            'total_users' => User::count(),
+            'active_members' => User::where('role', User::ROLE_MEMBER)->count(),
+            'admin_count' => User::where('role', User::ROLE_ADMIN)->count(),
+            'system_status' => 'OPTIMAL // LIVE',
+            'security_level' => 'LEVEL-5 CYBER-RED',
+            'server_time' => now()->format('Y-m-d H:i:s T'),
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+        ];
+
+        // Free Tool Launcher Nodes
+        $toolNodes = [
+            [
+                'id' => 'smtp-tester',
+                'badge' => 'FREE TOOL',
+                'icon' => 'fa-solid fa-envelope-circle-check',
+                'title' => 'SMTP Tester',
+                'description' => 'Test and verify SMTP server connections, authentication, and email delivery.',
+                'route' => '#smtp-tester',
+                'category' => 'mail'
+            ],
+            [
+                'id' => 'encode-obfuscate',
+                'badge' => 'FREE TOOL',
+                'icon' => 'fa-solid fa-code-compare',
+                'title' => 'Encode & Obfuscate Studio',
+                'description' => 'Encode, decode, and obfuscate payloads with Base64, Hex, URL, and hash tools.',
+                'route' => '#encode-obfuscate',
+                'category' => 'crypto'
+            ],
+            [
+                'id' => 'bin-checker',
+                'badge' => 'FREE TOOL',
+                'icon' => 'fa-solid fa-credit-card',
+                'title' => 'Bin Checker',
+                'description' => 'Lookup Bank Identification Number (BIN) information, issuer bank, card brand, and country.',
+                'route' => '#bin-checker',
+                'category' => 'financial'
+            ],
+            [
+                'id' => 'ip-geo-lookup',
+                'badge' => 'FREE TOOL',
+                'icon' => 'fa-solid fa-location-dot',
+                'title' => 'IP Geo Lookup',
+                'description' => 'Inspect IP address geographical location, ISP, ASN details, and connection routing.',
+                'route' => '#ip-geo-lookup',
+                'category' => 'network'
+            ],
+        ];
+
+        return view('dashboard.index', compact('user', 'stats', 'toolNodes'));
+    }
+
+    /**
+     * Display the domain management page.
+     * Shows user domains with "Register Domain" capability.
+     */
+    public function domain(Request $request)
+    {
+        $user = Auth::user();
+
+        $domains = Domain::where('user_id', $user->id)
+            ->with('product')
+            ->latest()
+            ->get();
+
+        // Retrieve products user has purchased to associate domains with
+        $purchasedProductIds = Order::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->pluck('product_id')
+            ->toArray();
+
+        $userProducts = Product::whereIn('id', $purchasedProductIds)->get();
+        if ($userProducts->isEmpty()) {
+            $userProducts = Product::where('active', true)->get();
+        }
+
+        return view('dashboard.domain', compact('user', 'domains', 'userProducts'));
+    }
+
+    /**
+     * Store and register a new domain for the user.
+     */
+    public function storeDomain(Request $request)
+    {
+        $request->validate([
+            'domain' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:domains,domain',
+                'regex:/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/'
+            ],
+            'product_id' => 'required|integer',
+        ], [
+            'domain.regex' => 'The domain format is invalid (e.g. node.example.com or yourdomain.com).',
+            'domain.unique' => 'This domain is already registered in the neural database.',
+        ]);
+
+        $domainStr = strtolower(trim($request->input('domain')));
+        $productId = (int) $request->input('product_id');
+
+        Domain::create([
+            'user_id' => Auth::id(),
+            'product_id' => $productId,
+            'domain' => $domainStr,
+        ]);
+
+        return redirect()->route('dashboard.domain')->with('status', 'Domain ' . $domainStr . ' has been registered and bound successfully!');
+    }
+
+    /**
+     * Delete / Disconnect a registered domain.
+     */
+    public function destroyDomain($id)
+    {
+        $domain = Domain::where('user_id', Auth::id())->findOrFail($id);
+        $domainName = $domain->domain;
+        $domain->delete();
+
+        return redirect()->route('dashboard.domain')->with('status', 'Domain ' . $domainName . ' has been disconnected.');
+    }
+
+    /**
+     * Display news and announcements (xNotes) from Post model.
+     */
+    public function notes(Request $request)
+    {
+        $user = Auth::user();
+        $selectedCategory = $request->query('category');
+        $search = $request->query('q');
+
+        $query = Post::where('is_published', true)->latest();
+
+        if ($selectedCategory && $selectedCategory !== 'all') {
+            $query->where('category', $selectedCategory);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('content', 'like', '%' . $search . '%');
+            });
+        }
+
+        $posts = $query->paginate(9)->withQueryString();
+
+        $postCounts = [
+            'all' => Post::where('is_published', true)->count(),
+            'announcement' => Post::where('is_published', true)->where('category', 'announcement')->count(),
+            'news' => Post::where('is_published', true)->where('category', 'news')->count(),
+            'changelog' => Post::where('is_published', true)->where('category', 'changelog')->count(),
+            'tutorial' => Post::where('is_published', true)->where('category', 'tutorial')->count(),
+            'promotion' => Post::where('is_published', true)->where('category', 'promotion')->count(),
+            'general' => Post::where('is_published', true)->where('category', 'general')->count(),
+        ];
+
+        return view('dashboard.notes', compact('user', 'posts', 'selectedCategory', 'search', 'postCounts'));
+    }
+
+    /**
+     * Display single note/post detail.
+     */
+    public function noteDetail($slug)
+    {
+        $user = Auth::user();
+        $post = Post::where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $recentPosts = Post::where('is_published', true)
+            ->where('id', '!=', $post->id)
+            ->latest()
+            ->take(4)
+            ->get();
+
+        return view('dashboard.notes-detail', compact('user', 'post', 'recentPosts'));
+    }
+
+    /**
+     * Display completed downloads from orders.
+     */
+    public function download(Request $request)
+    {
+        $user = Auth::user();
+
+        $orders = Order::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->with('product')
+            ->latest()
+            ->get();
+
+        return view('dashboard.download', compact('user', 'orders'));
+    }
+
+    /**
+     * Generate secure payload file for download.
+     */
+    public function downloadFile(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        $product = Product::findOrFail($id);
+
+        $order = Order::where('user_id', $user->id)
+            ->where('product_id', $id)
+            ->where('status', 'completed')
+            ->first();
+
+        if (!$order && !$user->isAdmin()) {
+            return redirect()->route('dashboard.download')->with('error', 'Clearance denied: You do not hold an authorized license for this payload.');
+        }
+
+        $contents = is_array($product->contents) ? $product->contents : json_decode($product->contents, true);
+        if (empty($contents)) {
+            $contents = [[
+                'file' => ($product->name . '.zip'),
+                'version' => '1.0.0',
+                'md5sum' => md5($product->name),
+                'changelog' => 'Initial release build.'
+            ]];
+        }
+
+        $requestedVersion = $request->query('version');
+        $selectedItem = null;
+
+        if ($requestedVersion) {
+            foreach ($contents as $item) {
+                if (($item['version'] ?? '') === $requestedVersion) {
+                    $selectedItem = $item;
+                    break;
+                }
+            }
+        }
+
+        if (!$selectedItem) {
+            $selectedItem = $contents[0];
+        }
+
+        $targetFile = $selectedItem['file'] ?? ($product->name . '.zip');
+        $md5 = $selectedItem['md5sum'] ?? md5($product->name);
+        $version = $selectedItem['version'] ?? '1.0.0';
+        $changelog = $selectedItem['changelog'] ?? 'Standard production build.';
+
+        $payload = "====================================================\n" .
+            "           XUNDEFINED ENCRYPTED PAYLOAD VAULT       \n" .
+            "====================================================\n\n" .
+            "Product Node  : " . $product->name . "\n" .
+            "Release Ver   : " . $version . "\n" .
+            "Payload File  : " . $targetFile . "\n" .
+            "License Holder: " . $user->name . " <" . $user->email . ">\n" .
+            "Clearance Lvl : " . $user->role_name . "\n" .
+            "Invoice Ref   : " . ($order->invoice ?? 'SYS_ADMIN_OVERRIDE') . "\n" .
+            "Build Date    : " . now()->format('Y-m-d H:i:s T') . "\n" .
+            "MD5 Checksum  : " . $md5 . "\n" .
+            "Changelog     : " . $changelog . "\n" .
+            "Integrity     : VERIFIED // PASSED\n\n" .
+            "--- BEGIN RAW SECURE ENCRYPTED BINARY ---\n" .
+            base64_encode(random_bytes(512)) . "\n" .
+            "--- END RAW SECURE ENCRYPTED BINARY ---\n";
+
+        return response($payload)
+            ->header('Content-Type', 'application/octet-stream')
+            ->header('Content-Disposition', 'attachment; filename="' . $targetFile . '"');
+    }
+
+    /**
+     * Display cyber store products with purchase status verification.
+     */
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+
+        $products = Product::where('active', true)->latest()->get();
+
+        $purchasedProductIds = Order::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->pluck('product_id')
+            ->toArray();
+
+        return view('dashboard.store', compact('user', 'products', 'purchasedProductIds'));
+    }
+
+    /**
+     * Process module acquisition / purchase from xStore.
+     */
+    public function purchaseProduct(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'payment_method' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        $product = Product::findOrFail($request->input('product_id'));
+
+        // Check if already purchased
+        $existingOrder = Order::where('user_id', $user->id)
+            ->where('product_id', $product->id)
+            ->where('status', 'completed')
+            ->first();
+
+        if ($existingOrder) {
+            return redirect()->route('dashboard.download')->with('status', 'You already own ' . $product->name . '! Redirected to your download vault.');
+        }
+
+        $invoice = 'INV-' . strtoupper(bin2hex(random_bytes(3))) . '-' . date('ymd');
+
+        Order::create([
+            'invoice' => $invoice,
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'price' => $product->price,
+            'payment_method' => $request->input('payment_method', 'CyberPay Instant Gateway'),
+            'status' => 'completed',
+        ]);
+
+        return redirect()->route('dashboard.download')->with('status', 'Module ' . $product->name . ' acquired successfully! Invoice #' . $invoice . ' generated.');
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+        return redirect()->route('login');
+    }
+}
+

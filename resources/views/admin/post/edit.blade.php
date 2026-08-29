@@ -1,0 +1,123 @@
+@extends('layouts.dashboard')
+
+@section('title', 'Edit Article: ' . $post->title . ' - Admin')
+@section('page-title', 'EDIT ARTICLE')
+
+@section('content')
+<div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+        <a href="{{ route('admin.dashboard') }}" style="color: var(--text-secondary); text-decoration: none;">Admin Hub</a>
+        <span>/</span>
+        <a href="{{ route('post.index') }}" style="color: var(--text-secondary); text-decoration: none;">Posts</a>
+        <span>/</span>
+        <span style="color: #ffffff;">Edit #{{ $post->id }}</span>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+        <a href="{{ route('dashboard.notes.detail', $post->slug) }}" target="_blank" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> VIEW LIVE
+        </a>
+        <a href="{{ route('post.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> BACK
+        </a>
+    </div>
+</div>
+
+{{-- Validation Errors --}}
+@if ($errors->any())
+    <div class="cyber-alert" role="alert" style="border-color: var(--red-primary); background: rgba(255, 23, 68, 0.1); margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation cyber-alert-icon" style="color: var(--red-primary);"></i>
+        <div class="cyber-alert-content">
+            <span class="cyber-alert-title" style="color: var(--red-primary);">VALIDATION ERROR</span>
+            <ul style="margin: 4px 0 0 16px; font-size: 0.82rem; color: #ff80ab;">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
+<form action="{{ route('post.update', $post->id) }}" method="POST">
+    @csrf
+    @method('PUT')
+
+    <div class="cyber-panel">
+        <div class="cyber-panel-header">
+            <div class="cyber-panel-title">
+                <i class="fa-solid fa-pen-to-square"></i>
+                EDIT ARTICLE #{{ $post->id }}
+            </div>
+            @if ($post->is_published)
+                <span class="badge-status b-ok">PUBLISHED</span>
+            @else
+                <span class="badge-status b-err">DRAFT</span>
+            @endif
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;" class="split-grid">
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="title">
+                        <i class="fa-solid fa-heading"></i> ARTICLE TITLE *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        class="cyber-input" 
+                        placeholder="e.g. Platform v2.5 Security Update" 
+                        value="{{ old('title', $post->title) }}" 
+                        required
+                    >
+                </div>
+
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="content">
+                        <i class="fa-solid fa-align-left"></i> CONTENT / BODY *
+                    </label>
+                    <textarea 
+                        id="content" 
+                        name="content" 
+                        class="cyber-input" 
+                        rows="12" 
+                        required
+                    >{{ old('content', $post->content) }}</textarea>
+                </div>
+            </div>
+
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="category">
+                        <i class="fa-solid fa-tag"></i> CATEGORY *
+                    </label>
+                    <select id="category" name="category" class="cyber-input" required>
+                        <option value="announcement" {{ old('category', $post->category) === 'announcement' ? 'selected' : '' }}>Announcement</option>
+                        <option value="news" {{ old('category', $post->category) === 'news' ? 'selected' : '' }}>News</option>
+                        <option value="changelog" {{ old('category', $post->category) === 'changelog' ? 'selected' : '' }}>Changelog</option>
+                        <option value="tutorial" {{ old('category', $post->category) === 'tutorial' ? 'selected' : '' }}>Tutorial</option>
+                        <option value="promotion" {{ old('category', $post->category) === 'promotion' ? 'selected' : '' }}>Promotion</option>
+                        <option value="general" {{ old('category', $post->category) === 'general' ? 'selected' : '' }}>General</option>
+                    </select>
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
+                        <input type="checkbox" name="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--red-primary);">
+                        <span>PUBLISHED (Visible in xNotes)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+            <a href="{{ route('post.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-md">
+                CANCEL
+            </a>
+            <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-md">
+                <i class="fa-solid fa-floppy-disk"></i> SAVE CHANGES
+            </button>
+        </div>
+    </div>
+</form>
+@endsection
