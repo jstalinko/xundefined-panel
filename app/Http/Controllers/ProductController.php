@@ -47,7 +47,8 @@ class ProductController extends Controller
     public function create()
     {
         $user = Auth::user();
-        return view('admin.product.create', compact('user'));
+        $storageFiles = $this->getStorageFiles();
+        return view('admin.product.create', compact('user', 'storageFiles'));
     }
 
     /**
@@ -96,8 +97,9 @@ class ProductController extends Controller
     {
         $user = Auth::user();
         $product = Product::findOrFail($id);
+        $storageFiles = $this->getStorageFiles();
 
-        return view('admin.product.edit', compact('user', 'product'));
+        return view('admin.product.edit', compact('user', 'product', 'storageFiles'));
     }
 
     /**
@@ -184,6 +186,42 @@ class ProductController extends Controller
             ]
         ];
     }
+
+    /**
+     * Get list of available files in storage/app/private.
+     */
+    protected function getStorageFiles(): array
+    {
+        $privateDir = storage_path('app/private');
+        if (!is_dir($privateDir)) {
+            @mkdir($privateDir, 0755, true);
+        }
+
+        $files = [];
+        if (is_dir($privateDir)) {
+            $scanned = scandir($privateDir);
+            foreach ($scanned as $f) {
+                if ($f === '.' || $f === '..' || $f === '.gitignore') {
+                    continue;
+                }
+                $fullPath = $privateDir . DIRECTORY_SEPARATOR . $f;
+                if (is_file($fullPath)) {
+                    $bytes = filesize($fullPath);
+                    $humanSize = $bytes >= 1048576 
+                        ? round($bytes / 1048576, 2) . ' MB'
+                        : round($bytes / 1024, 2) . ' KB';
+                    $files[] = [
+                        'filename' => $f,
+                        'size' => $bytes,
+                        'size_human' => $humanSize,
+                        'md5' => md5_file($fullPath) ?: md5($f),
+                    ];
+                }
+            }
+        }
+
+        return $files;
+    }
 }
 
 /**
@@ -193,3 +231,4 @@ function routeExists($name): bool
 {
     return \Illuminate\Support\Facades\Route::has($name);
 }
+

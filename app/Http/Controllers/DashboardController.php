@@ -244,6 +244,44 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
+        $orders->each(function ($order) {
+            if ($order->product) {
+                $rawContents = is_array($order->product->contents) 
+                    ? $order->product->contents 
+                    : (json_decode($order->product->contents ?? '[]', true) ?: []);
+
+                if (empty($rawContents)) {
+                    $rawContents = [[
+                        'file' => ($order->product->name ?? 'package') . '.zip',
+                        'version' => '1.0.0',
+                        'md5sum' => md5($order->product->name ?? uniqid()),
+                        'changelog' => 'Standard release build.'
+                    ]];
+                }
+
+                $evaluated = [];
+                foreach ($rawContents as $item) {
+                    $fn = $item['file'] ?? '';
+                    $fullPath = storage_path('app/private/' . $fn);
+                    $exists = !empty($fn) && is_file($fullPath);
+                    $sizeHuman = 'Unavailable';
+
+                    if ($exists) {
+                        $bytes = filesize($fullPath);
+                        $sizeHuman = $bytes >= 1048576 
+                            ? round($bytes / 1048576, 2) . ' MB'
+                            : round($bytes / 1024, 2) . ' KB';
+                    }
+
+                    $item['exists_in_storage'] = $exists;
+                    $item['file_size_human'] = $sizeHuman;
+                    $evaluated[] = $item;
+                }
+
+                $order->product->evaluated_contents = $evaluated;
+            }
+        });
+
         return view('dashboard.download', compact('user', 'orders'));
     }
 
@@ -292,30 +330,16 @@ class DashboardController extends Controller
         }
 
         $targetFile = $selectedItem['file'] ?? ($product->name . '.zip');
-        $md5 = $selectedItem['md5sum'] ?? md5($product->name);
-        $version = $selectedItem['version'] ?? '1.0.0';
-        $changelog = $selectedItem['changelog'] ?? 'Standard production build.';
+        $filePath = storage_path('app/private/' . $targetFile);
 
-        $payload = "====================================================\n" .
-            "           XUNDEFINED ENCRYPTED PAYLOAD VAULT       \n" .
-            "====================================================\n\n" .
-            "Product Node  : " . $product->name . "\n" .
-            "Release Ver   : " . $version . "\n" .
-            "Payload File  : " . $targetFile . "\n" .
-            "License Holder: " . $user->name . " <" . $user->email . ">\n" .
-            "Clearance Lvl : " . $user->role_name . "\n" .
-            "Invoice Ref   : " . ($order->invoice ?? 'SYS_ADMIN_OVERRIDE') . "\n" .
-            "Build Date    : " . now()->format('Y-m-d H:i:s T') . "\n" .
-            "MD5 Checksum  : " . $md5 . "\n" .
-            "Changelog     : " . $changelog . "\n" .
-            "Integrity     : VERIFIED // PASSED\n\n" .
-            "--- BEGIN RAW SECURE ENCRYPTED BINARY ---\n" .
-            base64_encode(random_bytes(512)) . "\n" .
-            "--- END RAW SECURE ENCRYPTED BINARY ---\n";
+        if (!is_file($filePath)) {
+            return redirect()->route('dashboard.download')
+                ->with('error', "Download failed: Payload package '{$targetFile}' does not exist in storage/app/private/ vault.");
+        }
 
-        return response($payload)
-            ->header('Content-Type', 'application/octet-stream')
-            ->header('Content-Disposition', 'attachment; filename="' . $targetFile . '"');
+        return response()->download($filePath, basename($targetFile), [
+            'Content-Type' => 'application/octet-stream',
+        ]);
     }
 
     /**

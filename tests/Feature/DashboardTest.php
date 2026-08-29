@@ -154,14 +154,20 @@ test('user can view cyber store and purchase an unowned product', function () {
     $storeResponse->assertSee('/dashboard/download');
 });
 
-test('user can view download vault and download purchased files', function () {
+test('user can view download vault and download purchased files when present in storage', function () {
     $user = User::factory()->create();
+
+    $privateDir = storage_path('app/private');
+    if (!is_dir($privateDir)) {
+        @mkdir($privateDir, 0755, true);
+    }
+    file_put_contents($privateDir . '/stealth-daemon.tar.gz', 'RAW BINARY PAYLOAD CONTENTS');
 
     $product = Product::create([
         'name' => 'Stealth Protocol Daemon',
         'price' => 450000,
         'description' => 'Encrypted proxy daemon',
-        'contents' => [['file' => 'stealth-daemon.tar.gz', 'version' => '3.0.1', 'md5sum' => 'fedcba987654']],
+        'contents' => [['file' => 'stealth-daemon.tar.gz', 'version' => '3.0.1', 'md5sum' => md5_file($privateDir . '/stealth-daemon.tar.gz')]],
         'active' => true,
     ]);
 
@@ -183,13 +189,46 @@ test('user can view download vault and download purchased files', function () {
     // Trigger file download
     $fileResponse = $this->actingAs($user)->get("/dashboard/download/file/{$product->id}");
     $fileResponse->assertStatus(200);
-    $fileResponse->assertHeader('Content-Disposition', 'attachment; filename="stealth-daemon.tar.gz"');
-    expect($fileResponse->getContent())->toContain('XUNDEFINED ENCRYPTED PAYLOAD VAULT');
-    expect($fileResponse->getContent())->toContain('Stealth Protocol Daemon');
+    $fileResponse->assertHeader('Content-Disposition', 'attachment; filename=stealth-daemon.tar.gz');
+    expect($fileResponse->getFile()->getContent())->toEqual('RAW BINARY PAYLOAD CONTENTS');
+
+    @unlink($privateDir . '/stealth-daemon.tar.gz');
+});
+
+test('download fails gracefully when package file does not exist in storage', function () {
+    $user = User::factory()->create();
+
+    $product = Product::create([
+        'name' => 'Non Existent Package Tool',
+        'price' => 100000,
+        'description' => 'Tool without physical file on disk',
+        'contents' => [['file' => 'missing-file-404.zip', 'version' => '1.0.0', 'md5sum' => '123456']],
+        'active' => true,
+    ]);
+
+    Order::create([
+        'invoice' => 'INV-TEST-MISSING',
+        'user_id' => $user->id,
+        'product_id' => $product->id,
+        'price' => 100000,
+        'payment_method' => 'CyberPay',
+        'status' => 'completed',
+    ]);
+
+    $fileResponse = $this->actingAs($user)->get("/dashboard/download/file/{$product->id}");
+    $fileResponse->assertRedirect('/dashboard/download');
+    $fileResponse->assertSessionHas('error');
 });
 
 test('user can download specific release version from multi-version contents', function () {
     $user = User::factory()->create();
+
+    $privateDir = storage_path('app/private');
+    if (!is_dir($privateDir)) {
+        @mkdir($privateDir, 0755, true);
+    }
+    file_put_contents($privateDir . '/x-sentinel-v2.5.zip', 'VERSION 2.5 BINARY');
+    file_put_contents($privateDir . '/x-sentinel-v2.4.zip', 'VERSION 2.4 BINARY');
 
     $product = Product::create([
         'name' => 'X-Sentinel Threat Bot',
@@ -200,13 +239,13 @@ test('user can download specific release version from multi-version contents', f
                 'file' => 'x-sentinel-v2.5.zip',
                 'version' => '2.5.0',
                 'changelog' => 'Added WebSocket live stream.',
-                'md5sum' => 'a9f1b2c3d4e5f60718293a4b5c6d7e8f'
+                'md5sum' => md5_file($privateDir . '/x-sentinel-v2.5.zip')
             ],
             [
                 'file' => 'x-sentinel-v2.4.zip',
                 'version' => '2.4.0',
                 'changelog' => 'Initial neural heuristics.',
-                'md5sum' => '7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b'
+                'md5sum' => md5_file($privateDir . '/x-sentinel-v2.4.zip')
             ]
         ],
         'active' => true,
@@ -232,9 +271,11 @@ test('user can download specific release version from multi-version contents', f
     // Download v2.4.0 specifically
     $fileResponse = $this->actingAs($user)->get("/dashboard/download/file/{$product->id}?version=2.4.0");
     $fileResponse->assertStatus(200);
-    $fileResponse->assertHeader('Content-Disposition', 'attachment; filename="x-sentinel-v2.4.zip"');
-    expect($fileResponse->getContent())->toContain('Release Ver   : 2.4.0');
-    expect($fileResponse->getContent())->toContain('x-sentinel-v2.4.zip');
+    $fileResponse->assertHeader('Content-Disposition', 'attachment; filename=x-sentinel-v2.4.zip');
+    expect($fileResponse->getFile()->getContent())->toEqual('VERSION 2.4 BINARY');
+
+    @unlink($privateDir . '/x-sentinel-v2.5.zip');
+    @unlink($privateDir . '/x-sentinel-v2.4.zip');
 });
 
 test('user can view xNotes list and filter by category or search', function () {

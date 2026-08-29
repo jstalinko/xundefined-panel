@@ -98,16 +98,19 @@
         @foreach ($orders as $order)
             @php
                 $product = $order->product;
-                $contents = is_array($product->contents ?? null) 
-                    ? $product->contents 
-                    : (json_decode($product->contents ?? '[]', true) ?: []);
+                $contents = $product->evaluated_contents 
+                    ?? (is_array($product->contents ?? null) 
+                        ? $product->contents 
+                        : (json_decode($product->contents ?? '[]', true) ?: []));
                 
                 if (empty($contents)) {
                     $contents = [[
                         'file' => ($product->name ?? 'package') . '.zip',
                         'version' => '1.0.0',
                         'md5sum' => 'a9f1b2c3d4e5f60718293a4b5c6d7e8f',
-                        'changelog' => 'Initial release build.'
+                        'changelog' => 'Initial release build.',
+                        'exists_in_storage' => false,
+                        'file_size_human' => 'Unavailable'
                     ]];
                 }
                 
@@ -222,6 +225,10 @@
                                     $itemMd5 = $item['md5sum'] ?? 'a9f1b2c3d4e5f60718293a4b5c6d7e8f';
                                     $itemChangelog = $item['changelog'] ?? 'Standard release build.';
                                     $isLatest = ($index === 0);
+                                    $fileExists = isset($item['exists_in_storage']) 
+                                        ? $item['exists_in_storage'] 
+                                        : is_file(storage_path('app/private/' . $itemFile));
+                                    $fileSize = $item['file_size_human'] ?? ($fileExists ? round(filesize(storage_path('app/private/' . $itemFile)) / 1024, 2) . ' KB' : 'Unavailable');
                                 @endphp
                                 <div class="release-version-item {{ $isLatest ? 'is-latest' : '' }}">
                                     {{-- Version & Filename Row --}}
@@ -266,15 +273,29 @@
 
                                     {{-- Download Action Row --}}
                                     <div class="download-action-row">
-                                        <span style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted);">
-                                            <i class="fa-solid fa-circle-check" style="color: var(--status-online);"></i> Ready to download
-                                        </span>
-                                        <a 
-                                            href="{{ route('dashboard.download.file', ['id' => $order->product_id, 'version' => $itemVer]) }}" 
-                                            class="btn-download-version"
-                                        >
-                                            <i class="fa-solid fa-download"></i> Download v{{ $itemVer }}
-                                        </a>
+                                        @if ($fileExists)
+                                            <span style="font-family: var(--font-mono); font-size: 0.68rem; color: #a3e635;">
+                                                <i class="fa-solid fa-circle-check" style="color: var(--status-online);"></i> Ready ({{ $fileSize }})
+                                            </span>
+                                            <a 
+                                                href="{{ route('dashboard.download.file', ['id' => $order->product_id, 'version' => $itemVer]) }}" 
+                                                class="btn-download-version"
+                                            >
+                                                <i class="fa-solid fa-download"></i> Download v{{ $itemVer }}
+                                            </a>
+                                        @else
+                                            <span style="font-family: var(--font-mono); font-size: 0.68rem; color: #ff5252;">
+                                                <i class="fa-solid fa-triangle-exclamation" style="color: var(--red-primary);"></i> File missing in vault
+                                            </span>
+                                            <a 
+                                                href="{{ route('dashboard.download.file', ['id' => $order->product_id, 'version' => $itemVer]) }}" 
+                                                class="btn-download-version"
+                                                style="opacity: 0.55; border-color: rgba(255,23,68,0.4); background: rgba(255,23,68,0.08); color: #ff859b;"
+                                                title="File package not found in storage/app/private/ vault"
+                                            >
+                                                <i class="fa-solid fa-download"></i> Download v{{ $itemVer }}
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
