@@ -17,6 +17,9 @@
 
     <!-- Xundefined Cyber Red Design System -->
     <link rel="stylesheet" href="{{ asset('app.css') }}">
+
+    <!-- Quill Rich Text Editor CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     @stack('styles')
 </head>
 <body>
@@ -285,6 +288,8 @@
             });
         }
     </script>
+    <!-- Quill Rich Text Editor JS -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     @stack('scripts')
 </body>
 </html>

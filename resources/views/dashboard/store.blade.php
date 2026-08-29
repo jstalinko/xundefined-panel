@@ -178,9 +178,9 @@
                             <i class="fa-solid fa-chevron-down toggle-chevron"></i>
                         </button>
                         <div id="desc-collapse-{{ $product->id }}" class="product-desc-content" style="display: none;">
-                            <p class="cyber-card-text" style="margin: 0;">
-                                {{ $product->description ?? 'Official software package release with complete documentation and features.' }}
-                            </p>
+                            <div class="cyber-card-text ql-editor" style="margin: 0; padding: 0; min-height: unset; font-size: 0.84rem;">
+                                {!! $product->description ?? 'Official software package release with complete documentation and features.' !!}
+                            </div>
                         </div>
                     </div>
 

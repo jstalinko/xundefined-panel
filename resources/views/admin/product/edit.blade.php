@@ -86,16 +86,11 @@
 
             <div>
                 <div class="cyber-form-group">
-                    <label class="cyber-label" for="description">
-                        <i class="fa-solid fa-align-left"></i> DESCRIPTION
+                    <label class="cyber-label" for="descriptionEditor">
+                        <i class="fa-solid fa-align-left"></i> DESCRIPTION (RICH EDITOR)
                     </label>
-                    <textarea 
-                        id="description" 
-                        name="description" 
-                        class="cyber-input" 
-                        rows="4" 
-                        placeholder="Detailed overview of capabilities, architecture, and tool specifications..."
-                    >{{ old('description', $product->description) }}</textarea>
+                    <textarea id="description" name="description" style="display: none;">{{ old('description', $product->description) }}</textarea>
+                    <div id="descriptionEditor" class="cyber-quill-editor" style="min-height: 140px;">{!! old('description', $product->description) !!}</div>
                 </div>
 
                 <div class="cyber-form-group" style="margin-top: 14px;">
@@ -226,6 +221,43 @@
 <script>
     const availableStorageFiles = @json($storageFiles);
     let releaseIndex = {{ count($releases) }};
+
+    // Quill Rich Editor Setup
+    let descriptionQuill;
+    if (document.getElementById('descriptionEditor') && typeof Quill !== 'undefined') {
+        descriptionQuill = new Quill('#descriptionEditor', {
+            theme: 'snow',
+            placeholder: 'Detailed overview of capabilities, architecture, and tool specifications...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link', 'clean']
+                ]
+            }
+        });
+
+        descriptionQuill.on('text-change', function () {
+            const descInput = document.getElementById('description');
+            if (descInput) {
+                descInput.value = descriptionQuill.root.innerHTML === '<p><br></p>' ? '' : descriptionQuill.root.innerHTML;
+            }
+        });
+    }
+
+    const productEditForm = document.querySelector('form[action="{{ route('product.update', $product->id) }}"]');
+    if (productEditForm) {
+        productEditForm.addEventListener('submit', function () {
+            if (descriptionQuill) {
+                const descInput = document.getElementById('description');
+                if (descInput) {
+                    descInput.value = descriptionQuill.root.innerHTML === '<p><br></p>' ? '' : descriptionQuill.root.innerHTML;
+                }
+            }
+        });
+    }
 
     function onFileSelectPicker(selectEl) {
         const card = selectEl.closest('.release-row-card');

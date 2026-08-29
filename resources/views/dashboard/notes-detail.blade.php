@@ -66,8 +66,8 @@
         </div>
 
         {{-- Post Content --}}
-        <div class="note-article-content" style="font-size: 0.95rem; line-height: 1.8; color: #e0e0e0;">
-            {!! nl2br(e($post->content)) !!}
+        <div class="note-article-content ql-editor" style="font-size: 0.95rem; line-height: 1.8; color: #e0e0e0; padding: 0;">
+            {!! $post->content !!}
         </div>
 
         <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">

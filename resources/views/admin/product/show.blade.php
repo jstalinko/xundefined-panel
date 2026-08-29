@@ -60,7 +60,9 @@
                 <tr>
                     <th>DESCRIPTION</th>
                     <td style="color: #d0d0d0; line-height: 1.5;">
-                        {{ $product->description ?? 'No description provided.' }}
+                        <div class="ql-editor" style="padding: 0; min-height: unset;">
+                            {!! $product->description ?? 'No description provided.' !!}
+                        </div>
                     </td>
                 </tr>
                 <tr>

@@ -33,7 +33,7 @@
     </div>
 @endif
 
-<form action="{{ route('post.store') }}" method="POST">
+<form action="{{ route('post.store') }}" method="POST" id="postCreateForm">
     @csrf
 
     <div class="cyber-panel">
@@ -62,18 +62,12 @@
                     >
                 </div>
 
-                <div class="cyber-form-group">
-                    <label class="cyber-label" for="content">
-                        <i class="fa-solid fa-align-left"></i> CONTENT / BODY *
+                <div class="cyber-form-group" style="margin-top: 16px;">
+                    <label class="cyber-label" for="contentEditor">
+                        <i class="fa-solid fa-align-left"></i> CONTENT / BODY (RICH EDITOR) *
                     </label>
-                    <textarea 
-                        id="content" 
-                        name="content" 
-                        class="cyber-input" 
-                        rows="12" 
-                        placeholder="Write your article markdown or formatted copy here..."
-                        required
-                    >{{ old('content') }}</textarea>
+                    <textarea id="content" name="content" style="display: none;">{{ old('content') }}</textarea>
+                    <div id="contentEditor" class="cyber-quill-editor" style="min-height: 300px;">{!! old('content') !!}</div>
                 </div>
             </div>
 
@@ -112,3 +106,44 @@
     </div>
 </form>
 @endsection
+
+@push('scripts')
+<script>
+    let contentQuill;
+    if (document.getElementById('contentEditor') && typeof Quill !== 'undefined') {
+        contentQuill = new Quill('#contentEditor', {
+            theme: 'snow',
+            placeholder: 'Write your article markdown, tutorials, release notes, or formatted copy here...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, 4, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['link', 'image', 'clean']
+                ]
+            }
+        });
+
+        contentQuill.on('text-change', function () {
+            const contentInput = document.getElementById('content');
+            if (contentInput) {
+                contentInput.value = contentQuill.root.innerHTML === '<p><br></p>' ? '' : contentQuill.root.innerHTML;
+            }
+        });
+    }
+
+    const postForm = document.getElementById('postCreateForm');
+    if (postForm) {
+        postForm.addEventListener('submit', function () {
+            if (contentQuill) {
+                const contentInput = document.getElementById('content');
+                if (contentInput) {
+                    contentInput.value = contentQuill.root.innerHTML === '<p><br></p>' ? '' : contentQuill.root.innerHTML;
+                }
+            }
+        });
+    }
+</script>
+@endpush
