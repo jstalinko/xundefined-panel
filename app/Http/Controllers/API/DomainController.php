@@ -48,7 +48,7 @@ class DomainController extends Controller
         }
         
 
-        return response()->json(['success' => false,'message' => 'Domain not registered, please register in xundefined.cc '],403,[],JSON_PRETTY_PRINT);
+        return response()->json(['success' => false,'message' => 'Domain: '.$domain.' not registered, please register in xundefined.cc '],403,[],JSON_PRETTY_PRINT);
         
     }
 }
