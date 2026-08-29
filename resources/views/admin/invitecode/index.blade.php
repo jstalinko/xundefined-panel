@@ -291,8 +291,8 @@
 </div>
 
 {{-- Interactive Invite Code Modal (Create & Edit) --}}
-<div class="cyber-modal-backdrop" id="inviteModalBackdrop" style="display: none;">
-    <div class="cyber-modal-card" style="max-width: 520px;">
+<div class="cyber-modal-backdrop" id="inviteModalBackdrop">
+    <div class="cyber-modal-window" style="max-width: 520px;">
         <div class="cyber-corner top-left"></div>
         <div class="cyber-corner top-right"></div>
         <div class="cyber-corner bottom-left"></div>
@@ -438,6 +438,7 @@
     const methodContainer = document.getElementById('methodSpoofContainer');
 
     function openCreateInviteModal() {
+        if (!backdrop || !form) return;
         form.action = "{{ route('invitecode.store') }}";
         methodContainer.innerHTML = '';
         headerTitle.textContent = 'GENERATE INVITE CODE';
@@ -448,11 +449,15 @@
         usedGroup.style.display = 'none';
         usedInput.checked = false;
 
-        backdrop.style.display = 'flex';
-        codeInput.focus();
+        backdrop.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+            if (codeInput) codeInput.focus();
+        }, 100);
     }
 
     function openEditInviteModal(data) {
+        if (!backdrop || !form) return;
         form.action = `/admin/invitecode/${data.id}`;
         methodContainer.innerHTML = '<input type="hidden" name="_method" value="PUT">';
         headerTitle.textContent = `EDIT INVITE CODE: ${data.code}`;
@@ -472,16 +477,39 @@
         usedGroup.style.display = 'block';
         usedInput.checked = Boolean(data.used);
 
-        backdrop.style.display = 'flex';
-        codeInput.focus();
+        backdrop.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+            if (codeInput) codeInput.focus();
+        }, 100);
     }
 
     function closeInviteModal() {
-        backdrop.style.display = 'none';
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     }
 
-    backdrop.addEventListener('click', function (e) {
-        if (e.target === backdrop) {
+    // Expose to window for global access
+    window.openCreateInviteModal = openCreateInviteModal;
+    window.openEditInviteModal = openEditInviteModal;
+    window.closeInviteModal = closeInviteModal;
+    window.generateNewRandomCode = generateNewRandomCode;
+    window.setExpiryPreset = setExpiryPreset;
+    window.clearExpiryPreset = clearExpiryPreset;
+
+    if (backdrop) {
+        backdrop.addEventListener('click', function (e) {
+            if (e.target === backdrop) {
+                closeInviteModal();
+            }
+        });
+    }
+
+    // Close on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop && backdrop.classList.contains('active')) {
             closeInviteModal();
         }
     });
@@ -495,7 +523,9 @@
             part1 += chars.charAt(Math.floor(Math.random() * chars.length));
             part2 += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        codeInput.value = `XU-${part1}-${part2}`;
+        if (codeInput) {
+            codeInput.value = `XU-${part1}-${part2}`;
+        }
     }
 
     // Expiry Presets
@@ -504,11 +534,15 @@
         now.setDate(now.getDate() + days);
         const tzOffset = now.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
-        expiresInput.value = localISOTime;
+        if (expiresInput) {
+            expiresInput.value = localISOTime;
+        }
     }
 
     function clearExpiryPreset() {
-        expiresInput.value = '';
+        if (expiresInput) {
+            expiresInput.value = '';
+        }
     }
 </script>
 @endpush
