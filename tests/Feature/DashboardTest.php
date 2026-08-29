@@ -352,3 +352,88 @@ test('domain validation API increments hits on successful validation', function 
 
     expect($domain->fresh()->hits)->toBe(6);
 });
+
+test('api ping endpoint returns ping status for a domain', function () {
+    $response = $this->getJson('/api/ping/127.0.0.1');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['online', 'latency', 'message']);
+});
+
+test('domain validation API returns success false when domain quota limit is reached', function () {
+    $user = User::factory()->create([
+        'invite_key' => 'QUOTA-TEST-KEY-999',
+    ]);
+
+    $product = Product::create([
+        'name' => 'Quota Product',
+        'price' => 50000,
+        'description' => 'Quota test product',
+        'contents' => [],
+        'active' => true,
+    ]);
+
+    Order::create([
+        'invoice' => 'INV-QUOTA-1',
+        'user_id' => $user->id,
+        'product_id' => $product->id,
+        'price' => 50000,
+        'domain_quota' => 2,
+        'payment_method' => 'CyberPay',
+        'status' => 'completed',
+    ]);
+
+    // Create 2 existing domains for quota of 2
+    Domain::create(['user_id' => $user->id, 'product_id' => $product->id, 'domain' => 'dom1.quota.test']);
+    Domain::create(['user_id' => $user->id, 'product_id' => $product->id, 'domain' => 'dom2.quota.test']);
+
+    // Attempting validation for an unregistered domain when quota limit is reached
+    $payload = base64_encode("unregistered.quota.test|QUOTA-TEST-KEY-999|{$product->id}");
+
+    $response = $this->postJson('/api/domain-validation', [
+        'payload' => $payload,
+    ]);
+
+    $response->assertStatus(403)
+        ->assertJson([
+            'success' => false,
+        ]);
+
+    expect($response->json('message'))->toContain('Domain quota limit reached');
+});
+
+test('user can register localhost, 127.0.0.1, and custom port domains', function () {
+    $user = User::factory()->create();
+
+    $product = Product::create([
+        'name' => 'Local Sentinel',
+        'price' => 100000,
+        'description' => 'Local node test',
+        'contents' => [],
+        'active' => true,
+    ]);
+
+    // Test localhost with port
+    $res1 = $this->actingAs($user)->post('/dashboard/domain', [
+        'domain' => 'localhost:8080',
+        'product_id' => $product->id,
+    ]);
+    $res1->assertRedirect('/dashboard/domain');
+    $this->assertDatabaseHas('domains', ['domain' => 'localhost:8080']);
+
+    // Test 127.0.0.1 IP
+    $res2 = $this->actingAs($user)->post('/dashboard/domain', [
+        'domain' => '127.0.0.1',
+        'product_id' => $product->id,
+    ]);
+    $res2->assertRedirect('/dashboard/domain');
+    $this->assertDatabaseHas('domains', ['domain' => '127.0.0.1']);
+
+    // Test 127.0.0.0 IP
+    $res3 = $this->actingAs($user)->post('/dashboard/domain', [
+        'domain' => '127.0.0.0:3000',
+        'product_id' => $product->id,
+    ]);
+    $res3->assertRedirect('/dashboard/domain');
+    $this->assertDatabaseHas('domains', ['domain' => '127.0.0.0:3000']);
+});

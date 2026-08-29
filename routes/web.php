@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -49,4 +50,5 @@ Route::group(['prefix' => '/admin' , 'middleware' => ['auth','admin']], function
     Route::resource('/post', PostController::class);
     Route::get('/invitecode/generate-random', [InviteCodeController::class, 'generateRandom'])->name('invitecode.random');
     Route::resource('/invitecode', InviteCodeController::class);
+    Route::resource('/user', UserController::class);
 });

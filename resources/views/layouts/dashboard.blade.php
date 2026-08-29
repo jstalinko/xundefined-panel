@@ -140,6 +140,12 @@
                             <span>InviteCode</span>
                         </a>
                     </div>
+                     <div class="cyber-nav-item">
+                        <a href="{{ route('user.index') }}" class="cyber-nav-link {{ request()->routeIs('user*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Users</span>
+                        </a>
+                    </div>
                 @endif
 
                 <div class="nav-section-title">OUR LINKS</div>

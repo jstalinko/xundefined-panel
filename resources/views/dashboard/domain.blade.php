@@ -82,6 +82,45 @@
     </div>
 </div>
 
+{{-- Product Domain Quota Overview Cards --}}
+@if (isset($productStats) && $productStats->isNotEmpty())
+<div class="cyber-panel" style="margin-bottom: 24px;">
+    <div class="cyber-panel-header">
+        <div class="cyber-panel-title">
+            <i class="fa-solid fa-chart-pie" style="color: var(--red-primary);"></i>
+            PRODUCT DOMAIN QUOTAS
+        </div>
+        <span class="badge-status b-ok" style="font-size: 0.72rem;">
+            <i class="fa-solid fa-shield-halved"></i> {{ $productStats->count() }} ACTIVE PRODUCTS
+        </span>
+    </div>
+    <div style="padding: 16px 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;">
+            @foreach ($productStats as $stat)
+                @php
+                    $isFull = $stat['used'] >= $stat['quota'];
+                    $barColor = $isFull ? 'var(--red-primary)' : 'var(--cyan-glow, #00f0ff)';
+                @endphp
+                <div style="background: rgba(15, 17, 23, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 14px 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px;">
+                            <i class="fa-solid fa-cube" style="color: var(--red-primary); margin-right: 6px;"></i>
+                            {{ $stat['product_name'] }}
+                        </div>
+                        <div style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: {{ $barColor }}; white-space: nowrap;">
+                            {{ $stat['used'] }} / {{ $stat['quota'] }}
+                        </div>
+                    </div>
+                    <div style="width: 100%; height: 4px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ $stat['percentage'] }}%; background: {{ $barColor }}; border-radius: 2px;"></div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- Domain Records Table Panel --}}
 <div class="cyber-panel">
     <div class="cyber-panel-header">
@@ -239,19 +278,19 @@
                 <div class="cyber-form-group">
                     <label class="cyber-label" for="domainInput">
                         <i class="fa-solid fa-globe"></i> DOMAIN NAME
-                        <span class="cyber-label-hint">e.g. app.yourdomain.com</span>
+                        <span class="cyber-label-hint">e.g. domain.com, localhost:8000, 127.0.0.1</span>
                     </label>
                     <input 
                         type="text" 
                         id="domainInput" 
                         name="domain" 
                         class="cyber-input" 
-                        placeholder="app.yourdomain.com or example.com" 
+                        placeholder="example.com, localhost:8080, or 127.0.0.1" 
                         value="{{ old('domain') }}"
                         required
                         autocomplete="off"
-                        pattern="^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
-                        title="Enter a valid domain name (e.g. sub.domain.com or example.com)"
+                        pattern="^(localhost|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})(:\d{1,5})?$"
+                        title="Enter a domain, localhost, IP (e.g. 127.0.0.1), or with optional port (e.g. localhost:8080)"
                     >
                 </div>
 
@@ -378,26 +417,38 @@
         });
     }
 
-    // Realtime Ping Simulator
-    function pingDomain(domain, btn) {
+    // Realtime Ping Check (Real Endpoint)
+    async function pingDomain(domain, btn) {
         if (!btn) return;
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PINGING...';
         btn.disabled = true;
 
-        setTimeout(() => {
-            const latency = Math.floor(Math.random() * 18) + 12;
-            btn.innerHTML = `<i class="fa-solid fa-check"></i> ${latency}ms`;
-            btn.style.borderColor = 'var(--status-online)';
-            btn.style.color = 'var(--status-online)';
+        try {
+            const res = await fetch(`/api/ping/${encodeURIComponent(domain)}`);
+            const data = await res.json();
 
+            if (res.ok && data.online && data.latency >= 0) {
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> ${data.latency}ms`;
+                btn.style.borderColor = 'var(--status-online)';
+                btn.style.color = 'var(--status-online)';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> DOWN';
+                btn.style.borderColor = 'var(--red-primary)';
+                btn.style.color = 'var(--red-primary)';
+            }
+        } catch (err) {
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> ERROR';
+            btn.style.borderColor = 'var(--red-primary)';
+            btn.style.color = 'var(--red-primary)';
+        } finally {
             setTimeout(() => {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 btn.style.borderColor = '';
                 btn.style.color = '';
             }, 3000);
-        }, 600);
+        }
     }
 </script>
 @endpush

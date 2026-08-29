@@ -80,6 +80,22 @@ class User extends Authenticatable
     ];
 
     /**
+     * Relationship to domains registered by user.
+     */
+    public function domains()
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    /**
+     * Relationship to orders placed by user.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -89,6 +105,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'integer',
         ];
     }
 }

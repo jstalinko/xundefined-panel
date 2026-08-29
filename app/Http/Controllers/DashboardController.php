@@ -98,7 +98,28 @@ class DashboardController extends Controller
             $userProducts = Product::where('active', true)->get();
         }
 
-        return view('dashboard.domain', compact('user', 'domains', 'userProducts'));
+        // Build domain usage vs quota stats for each purchased product
+        $productStats = collect();
+        foreach ($userProducts as $product) {
+            $orders = Order::where('user_id', $user->id)
+                ->where('product_id', $product->id)
+                ->where('status', 'completed')
+                ->get();
+
+            $quota = $orders->isNotEmpty() ? $orders->sum('domain_quota') : 3;
+            $used = Domain::where('user_id', $user->id)->where('product_id', $product->id)->count();
+
+            $productStats->push([
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'used' => $used,
+                'quota' => $quota,
+                'invoice' => $orders->isNotEmpty() ? $orders->pluck('invoice')->implode(', ') : 'ACTIVE LIC',
+                'percentage' => $quota > 0 ? min(100, (int) round(($used / $quota) * 100)) : 0,
+            ]);
+        }
+
+        return view('dashboard.domain', compact('user', 'domains', 'userProducts', 'productStats'));
     }
 
     /**
@@ -106,25 +127,38 @@ class DashboardController extends Controller
      */
     public function storeDomain(Request $request)
     {
+        $domainInput = strtolower(trim((string) $request->input('domain')));
+        $domainInput = preg_replace('#^https?://#i', '', $domainInput);
+        $request->merge(['domain' => $domainInput]);
+
         $request->validate([
             'domain' => [
                 'required',
                 'string',
                 'max:255',
                 'unique:domains,domain',
-                'regex:/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/'
+                'regex:/^(localhost|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})(:\d{1,5})?$/i'
             ],
             'product_id' => 'required|integer',
         ], [
-            'domain.regex' => 'The domain format is invalid (e.g. node.example.com or yourdomain.com).',
+            'domain.regex' => 'The domain format is invalid (allowed e.g. example.com, localhost:8080, or 127.0.0.1).',
             'domain.unique' => 'This domain is already registered in the neural database.',
         ]);
 
-        $domainStr = strtolower(trim($request->input('domain')));
+        $domainStr = $domainInput;
         $productId = (int) $request->input('product_id');
 
+        $userId = Auth::id();
+        $order = Order::where('user_id', $userId)->where('product_id', $productId)->first();
+        $quota = $order ? $order->domain_quota : 3;
+
+        $registeredCount = Domain::where('user_id', $userId)->where('product_id', $productId)->count();
+        if ($registeredCount >= $quota) {
+            return redirect()->back()->with('error', "Domain registration limit reached for this product (Quota limit: {$quota} domains).");
+        }
+
         Domain::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'product_id' => $productId,
             'domain' => $domainStr,
         ]);
