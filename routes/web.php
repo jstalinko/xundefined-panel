@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\InviteCodeController;
 
 
 // Landing route
@@ -43,4 +44,6 @@ Route::group(['prefix' => '/admin' , 'middleware' => ['auth','admin']], function
     Route::resource('/product' ,ProductController::class);
     Route::resource('/order', OrderController::class);
     Route::resource('/post', PostController::class);
+    Route::get('/invitecode/generate-random', [InviteCodeController::class, 'generateRandom'])->name('invitecode.random');
+    Route::resource('/invitecode', InviteCodeController::class);
 });

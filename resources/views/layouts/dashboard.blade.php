@@ -133,6 +133,13 @@
                             <span>Posts</span>
                         </a>
                     </div>
+
+                    <div class="cyber-nav-item">
+                        <a href="{{ route('invitecode.index') }}" class="cyber-nav-link {{ request()->routeIs('invitecode*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-key"></i>
+                            <span>Invite Codes</span>
+                        </a>
+                    </div>
                 @endif
 
                 <div class="nav-section-title">OUR LINKS</div>

@@ -100,7 +100,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'invite_key' => ['required', 'string', 'max:16'],
+            'invite_key' => ['required', 'string', 'max:64'],
         ], [
             'name.required' => 'Operative alias / handle is required.',
             'email.required' => 'Cryptographic identity email is required.',
@@ -109,16 +109,30 @@ class AuthController extends Controller
             'password.min' => 'Passcode must be at least 8 characters long.',
             'password.confirmed' => 'Passcode confirmation does not match.',
             'invite_key.required' => 'Valid clearance Invite Key is mandatory for mainframe registration.',
-            'invite_key.max' => 'Invite key must not exceed 16 characters.',
+            'invite_key.max' => 'Invite key must not exceed 64 characters.',
         ]);
+
+        $inviteCodeStr = strtoupper(trim($validated['invite_key']));
+        $dbInvite = \App\Models\Invitecode::where('code', $inviteCodeStr)->first();
+        if ($dbInvite) {
+            if (!$dbInvite->isValid()) {
+                return back()->withErrors([
+                    'invite_key' => 'This invite code is expired, inactive, or has already been claimed.'
+                ])->withInput();
+            }
+        }
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => User::ROLE_MEMBER,
-            'invite_key' => strtoupper(trim($validated['invite_key'])),
+            'invite_key' => $inviteCodeStr,
         ]);
+
+        if ($dbInvite) {
+            $dbInvite->markAsUsed($user);
+        }
 
         Auth::login($user);
         $request->session()->regenerate();
