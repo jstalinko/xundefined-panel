@@ -379,6 +379,107 @@ test('user can view payment page and poll status', function () {
         ]);
 });
 
+test('ipn webhook matches order by txn_id when invoice is missing in transfer payload', function () {
+    $user = User::factory()->create();
+
+    $product = Product::create([
+        'name'        => 'Transfer Product',
+        'price'       => 250000,
+        'description' => 'Transfer tool',
+        'contents'    => [],
+        'active'      => true,
+    ]);
+
+    $order = Order::create([
+        'invoice'          => 'INV-NO-INVOICE-01',
+        'user_id'          => $user->id,
+        'product_id'       => $product->id,
+        'price'            => 250000,
+        'domain_quota'     => 3,
+        'payment_method'   => 'CoinPayments (LTCT)',
+        'payment_currency' => 'LTCT',
+        'txn_id'           => 'CTKH2RPRS6VWDFDLSBTUJNCUCX',
+        'status'           => 'pending',
+    ]);
+
+    $merchantId = 'test_merchant_id_789';
+    $secret = 'test_ipn_secret_abc';
+
+    // Payload exactly matching CoinPayments transfer format without invoice
+    $params = [
+        'amount'        => '10.00000000',
+        'amounti'       => '1000000000',
+        'currency'      => 'LTCT',
+        'fee'           => '0.00000000',
+        'feei'          => '0',
+        'fiat_amount'   => '494.45771363',
+        'fiat_amounti'  => '49445771363',
+        'fiat_coin'     => 'USD',
+        'from'          => '8ac9528d191f8fb3f5b9daa25538c4ae',
+        'ipn_id'        => '04a56ddbeb1ff700aa339b75fc5034e5',
+        'ipn_mode'      => 'hmac',
+        'ipn_type'      => 'transfer',
+        'ipn_version'   => '1.0',
+        'merchant'      => $merchantId,
+        'status'        => '2',
+        'status_text'   => 'Complete',
+        'txn_id'        => 'CTKH2RPRS6VWDFDLSBTUJNCUCX',
+    ];
+
+    $rawContent = http_build_query($params);
+    $hmac = hash_hmac('sha512', $rawContent, $secret);
+
+    $response = $this->call(
+        'POST',
+        '/api/coinpayments/ipn',
+        $params,
+        [],
+        [],
+        ['HTTP_HMAC' => $hmac],
+        $rawContent
+    );
+
+    $response->assertStatus(200);
+    expect($response->getContent())->toBe('IPN OK');
+
+    $order->refresh();
+    expect($order->status)->toBe('completed');
+    expect($order->isCompleted())->toBeTrue();
+});
+
+test('ipn webhook cleanly acknowledges unmatched non-order events without failing', function () {
+    $merchantId = 'test_merchant_id_789';
+    $secret = 'test_ipn_secret_abc';
+
+    $params = [
+        'amount'        => '5.00000000',
+        'currency'      => 'BTC',
+        'ipn_id'        => 'ipn_random_transfer',
+        'ipn_mode'      => 'hmac',
+        'ipn_type'      => 'transfer',
+        'merchant'      => $merchantId,
+        'status'        => '2',
+        'status_text'   => 'Complete',
+        'txn_id'        => 'UNMATCHED_EXTERNAL_TXN_999',
+    ];
+
+    $rawContent = http_build_query($params);
+    $hmac = hash_hmac('sha512', $rawContent, $secret);
+
+    $response = $this->call(
+        'POST',
+        '/api/coinpayments/ipn',
+        $params,
+        [],
+        [],
+        ['HTTP_HMAC' => $hmac],
+        $rawContent
+    );
+
+    $response->assertStatus(200);
+    expect($response->getContent())->toContain('IPN OK');
+});
+
 test('currencies endpoint returns accepted coins list', function () {
     $response = $this->getJson('/api/coinpayments/currencies');
     $response->assertStatus(200)
@@ -387,3 +488,4 @@ test('currencies endpoint returns accepted coins list', function () {
             'coins',
         ]);
 });
+

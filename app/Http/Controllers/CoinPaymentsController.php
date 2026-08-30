@@ -193,45 +193,67 @@ class CoinPaymentsController extends Controller
 
         $data = $validation['data'];
 
-        $txnId      = $data['txn_id'] ?? null;
+        $txnId      = $data['txn_id'] ?? ($data['id'] ?? ($data['deposit_id'] ?? null));
+        $id         = $data['id'] ?? null;
+        $depositId  = $data['deposit_id'] ?? null;
+        $address    = $data['address'] ?? null;
         $status     = isset($data['status']) ? (int) $data['status'] : null;
         $statusText = $data['status_text'] ?? '';
-        $currency1  = strtoupper((string) ($data['currency1'] ?? ''));
-        $currency2  = strtoupper((string) ($data['currency2'] ?? ''));
-        $amount1    = isset($data['amount1']) ? (float) $data['amount1'] : null;
-        $amount2    = isset($data['amount2']) ? (float) $data['amount2'] : null;
+        $currency1  = strtoupper((string) ($data['currency1'] ?? ($data['fiat_coin'] ?? '')));
+        $currency2  = strtoupper((string) ($data['currency2'] ?? ($data['currency'] ?? '')));
+        $amount1    = isset($data['amount1']) ? (float) $data['amount1'] : (isset($data['fiat_amount']) ? (float) $data['fiat_amount'] : null);
+        $amount2    = isset($data['amount2']) ? (float) $data['amount2'] : (isset($data['amount']) ? (float) $data['amount'] : null);
         $invoice    = $data['invoice'] ?? null;
         $custom     = $data['custom'] ?? null;
         $ipnType    = $data['ipn_type'] ?? '';
 
-        // 2. Locate the Order in database
+        // 2. Locate the Order in database by txn_id, id, address, deposit_id, custom, or invoice
         $order = null;
 
-        // Try lookup by invoice
-        if (!empty($invoice)) {
-            $order = Order::with(['user', 'product'])->where('invoice', $invoice)->first();
+        // Try lookup by txn_id directly
+        if (!empty($txnId)) {
+            $order = Order::with(['user', 'product'])->where('txn_id', $txnId)->first();
         }
 
-        // Try lookup by txn_id
-        if (!$order && !empty($txnId)) {
-            $order = Order::with(['user', 'product'])->where('txn_id', $txnId)->first();
+        // Try lookup by id
+        if (!$order && !empty($id)) {
+            $order = Order::with(['user', 'product'])->where('txn_id', $id)->first();
+            if (!$order && is_numeric($id)) {
+                $order = Order::with(['user', 'product'])->find($id);
+            }
+        }
+
+        // Try lookup by deposit_id
+        if (!$order && !empty($depositId)) {
+            $order = Order::with(['user', 'product'])->where('txn_id', $depositId)->first();
+        }
+
+        // Try lookup by receiving address
+        if (!$order && !empty($address)) {
+            $order = Order::with(['user', 'product'])->where('payment_address', $address)->first();
         }
 
         // Try lookup by custom JSON payload
         if (!$order && !empty($custom)) {
-            $customData = json_decode($custom, true);
+            $customData = is_array($custom) ? $custom : json_decode($custom, true);
             if (!empty($customData['order_id'])) {
                 $order = Order::with(['user', 'product'])->find($customData['order_id']);
             } elseif (!empty($customData['invoice'])) {
                 $order = Order::with(['user', 'product'])->where('invoice', $customData['invoice'])->first();
+            } elseif (!empty($customData['txn_id'])) {
+                $order = Order::with(['user', 'product'])->where('txn_id', $customData['txn_id'])->first();
             }
         }
 
+        // Try lookup by invoice as fallback
+        if (!$order && !empty($invoice)) {
+            $order = Order::with(['user', 'product'])->where('invoice', $invoice)->first();
+        }
+
+        // If no matching order is found, acknowledge cleanly with IPN OK so CoinPayments does not keep retrying
         if (!$order) {
-            $msg = "Order not found for IPN (Invoice: '{$invoice}', TXN: '{$txnId}').";
-            $this->coinPaymentsService->sendDebugReport('Order Not Found', $msg, $data);
-            Log::warning('Crypto IPN: ' . $msg);
-            return response('IPN Error: ' . $msg, 404)
+            Log::info("CoinPayments IPN received with no associated order (Type: {$ipnType}, TXN: {$txnId}, ID: {$id}, Status: {$status}). Acknowledging webhook.");
+            return response('IPN OK: No order matched', 200)
                 ->header('Content-Type', 'text/plain');
         }
 
