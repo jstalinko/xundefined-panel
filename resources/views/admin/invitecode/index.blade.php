@@ -15,6 +15,16 @@
     </div>
 @endif
 
+@if (session('error'))
+    <div class="cyber-alert" role="alert" style="border-color: var(--red-primary); background: rgba(255, 23, 68, 0.08); margin-bottom: 20px;">
+        <i class="fa-solid fa-circle-xmark cyber-alert-icon" style="color: var(--red-primary);"></i>
+        <div class="cyber-alert-content">
+            <span class="cyber-alert-title" style="color: var(--red-primary);">ACTION DENIED</span>
+            <span class="cyber-alert-msg">{{ session('error') }}</span>
+        </div>
+    </div>
+@endif
+
 @if (isset($errors) && $errors->any())
     <div class="cyber-alert" role="alert" style="border-color: var(--red-primary); background: rgba(255, 23, 68, 0.08); margin-bottom: 20px;">
         <i class="fa-solid fa-circle-xmark cyber-alert-icon" style="color: var(--red-primary);"></i>
@@ -157,6 +167,7 @@
                     <tr>
                         <th style="width: 50px;">#</th>
                         <th>INVITE CODE</th>
+                        <th>BOUND PRODUCTS</th>
                         <th>EXPIRES AT</th>
                         <th>CLAIMED BY</th>
                         <th>GENERATED VIA</th>
@@ -192,6 +203,22 @@
                                         <i class="fa-solid fa-copy"></i>
                                     </button>
                                 </div>
+                            </td>
+                            <td>
+                                @if (!empty($code->products_id) && count($code->products_id) > 0)
+                                    @php
+                                        $boundProducts = $products->whereIn('id', $code->products_id);
+                                    @endphp
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        @foreach ($boundProducts as $p)
+                                            <span class="badge-status" style="background: rgba(0, 229, 255, 0.12); border: 1px solid rgba(0, 229, 255, 0.4); color: #00e5ff; font-size: 0.7rem; padding: 2px 6px;">
+                                                <i class="fa-solid fa-box-open" style="font-size: 0.65rem;"></i> {{ $p->name }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span style="color: var(--text-muted); font-size: 0.78rem;">- None -</span>
+                                @endif
                             </td>
                             <td>
                                 @if ($code->expired_at)
@@ -268,13 +295,25 @@
                                         <i class="fa-solid fa-pen-to-square"></i> EDIT
                                     </button>
 
-                                    <form action="{{ route('invitecode.destroy', $code->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete invite code: {{ $code->code }}?');" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="cyber-btn cyber-btn-xs" style="background: rgba(255, 23, 68, 0.15); border: 1px solid var(--red-primary); color: var(--red-primary);" title="Delete code">
-                                            <i class="fa-solid fa-trash-can"></i>
+                                    @if ($isUsed)
+                                        <button 
+                                            type="button" 
+                                            class="cyber-btn cyber-btn-xs" 
+                                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-muted); cursor: not-allowed; opacity: 0.6;" 
+                                            title="Claimed invite codes cannot be deleted"
+                                            disabled
+                                        >
+                                            <i class="fa-solid fa-lock"></i>
                                         </button>
-                                    </form>
+                                    @else
+                                        <form action="{{ route('invitecode.destroy', $code->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete invite code: {{ $code->code }}?');" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="cyber-btn cyber-btn-xs" style="background: rgba(255, 23, 68, 0.15); border: 1px solid var(--red-primary); color: var(--red-primary);" title="Delete code">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -359,6 +398,29 @@
                         <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-xs" onclick="setExpiryPreset(7)">+7 Days</button>
                         <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-xs" onclick="setExpiryPreset(30)">+30 Days</button>
                         <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-xs" onclick="clearExpiryPreset()">No Expiry (Never)</button>
+                    </div>
+                </div>
+
+                {{-- Bind Products (Multiple Select) --}}
+                <div class="cyber-form-group" style="margin-top: 14px;">
+                    <label class="cyber-label" for="modalProductsInput">
+                        <i class="fa-solid fa-boxes-stacked"></i> BIND PRODUCTS (AUTO-PURCHASE ON REGISTER)
+                    </label>
+                    <select 
+                        name="products_id[]" 
+                        id="modalProductsInput" 
+                        class="cyber-input" 
+                        multiple 
+                        style="height: 110px; padding: 6px;"
+                    >
+                        @foreach ($products as $p)
+                            <option value="{{ $p->id }}" style="padding: 4px 8px; background: #0f141d; color: #ffffff;">
+                                {{ $p->name }} (ID: {{ $p->id }} - ${{ number_format($p->price, 0) }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
+                        Hold <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px;">Ctrl</kbd> / <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px;">Cmd</kbd> to select multiple products to automatically grant upon registration.
                     </div>
                 </div>
 
@@ -449,6 +511,11 @@
         usedGroup.style.display = 'none';
         usedInput.checked = false;
 
+        const productsInput = document.getElementById('modalProductsInput');
+        if (productsInput) {
+            Array.from(productsInput.options).forEach(opt => opt.selected = false);
+        }
+
         backdrop.classList.add('active');
         document.body.style.overflow = 'hidden';
         setTimeout(() => {
@@ -476,6 +543,14 @@
 
         usedGroup.style.display = 'block';
         usedInput.checked = Boolean(data.used);
+
+        const productsInput = document.getElementById('modalProductsInput');
+        if (productsInput) {
+            const selectedIds = Array.isArray(data.products_id) ? data.products_id.map(Number) : [];
+            Array.from(productsInput.options).forEach(opt => {
+                opt.selected = selectedIds.includes(Number(opt.value));
+            });
+        }
 
         backdrop.classList.add('active');
         document.body.style.overflow = 'hidden';

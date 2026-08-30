@@ -54,8 +54,19 @@
                         <span>{{ strtoupper(substr(auth()->user()->name ?? 'O', 0, 1)) }}</span>
                         <span class="profile-status-indicator" title="Unit Online"></span>
                     </div>
-                    <div class="profile-info">
-                        <div class="profile-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</div>
+                    <div class="profile-info" style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                            <div class="profile-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</div>
+                            <button 
+                                type="button" 
+                                class="cyber-btn cyber-btn-xs" 
+                                style="padding: 2px 6px; font-size: 0.68rem; background: rgba(255, 23, 68, 0.12); border: 1px solid rgba(255, 23, 68, 0.35); color: var(--red-primary);"
+                                onclick="openProfileEditModal()"
+                                title="Edit Profile & Security"
+                            >
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
                         <div class="profile-role-badge">
                             <i class="fa-solid fa-shield-halved"></i>
                             <span>{{ auth()->user()->role == 1 ? 'Admin' : 'Member' }}</span>
@@ -235,6 +246,112 @@
         </div>
     </div>
 
+    {{-- Edit Profile & Security Modal --}}
+    @auth
+    <div class="cyber-modal-backdrop" id="profileEditModalBackdrop">
+        <div class="cyber-modal-window" style="max-width: 480px;">
+            <div class="cyber-corner top-left"></div>
+            <div class="cyber-corner top-right"></div>
+            <div class="cyber-corner bottom-left"></div>
+            <div class="cyber-corner bottom-right"></div>
+
+            <div class="cyber-modal-header">
+                <div class="cyber-modal-title">
+                    <i class="fa-solid fa-user-pen" style="color: var(--red-primary);"></i>
+                    <span>EDIT OPERATIVE PROFILE</span>
+                </div>
+                <button type="button" class="cyber-modal-close" onclick="closeProfileEditModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('dashboard.profile.update') }}" method="POST" id="profileEditForm">
+                @csrf
+                @method('PUT')
+
+                <div class="cyber-modal-body">
+                    {{-- Operative Name --}}
+                    <div class="cyber-form-group">
+                        <label class="cyber-label" for="profileNameInput">
+                            <i class="fa-solid fa-id-card"></i> OPERATIVE HANDLE / NAME *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="profileNameInput" 
+                            name="name" 
+                            class="cyber-input" 
+                            value="{{ auth()->user()->name }}"
+                            required
+                        >
+                    </div>
+
+                    {{-- Password Section Notice --}}
+                    <div style="margin-top: 14px; padding: 10px; background: rgba(255,255,255,0.03); border-left: 3px solid var(--red-primary); border-radius: var(--radius-sm); font-size: 0.75rem; color: var(--text-muted);">
+                        <i class="fa-solid fa-lock" style="color: var(--red-primary); margin-right: 4px;"></i>
+                        Leave password fields blank if you do not wish to update your security passcode.
+                    </div>
+
+                    {{-- New Password --}}
+                    <div class="cyber-form-group" style="margin-top: 14px;">
+                        <label class="cyber-label" for="profileNewPasswordInput">
+                            <i class="fa-solid fa-key"></i> NEW PASSCODE (OPTIONAL)
+                        </label>
+                        <input 
+                            type="password" 
+                            id="profileNewPasswordInput" 
+                            name="password" 
+                            class="cyber-input" 
+                            placeholder="Enter new passcode (min. 8 characters)"
+                            oninput="toggleCurrentPasswordRequirement()"
+                            autocomplete="new-password"
+                        >
+                    </div>
+
+                    {{-- Current Password & Confirm Password Container --}}
+                    <div id="passwordFieldsContainer" style="display: none; margin-top: 14px;">
+                        <div class="cyber-form-group">
+                            <label class="cyber-label" for="profileCurrentPasswordInput">
+                                <i class="fa-solid fa-shield-halved"></i> CURRENT PASSCODE *
+                            </label>
+                            <input 
+                                type="password" 
+                                id="profileCurrentPasswordInput" 
+                                name="current_password" 
+                                class="cyber-input" 
+                                placeholder="Enter current passcode to authorize change"
+                                autocomplete="current-password"
+                            >
+                        </div>
+
+                        <div class="cyber-form-group" style="margin-top: 14px;">
+                            <label class="cyber-label" for="profilePasswordConfirmInput">
+                                <i class="fa-solid fa-check-double"></i> CONFIRM NEW PASSCODE *
+                            </label>
+                            <input 
+                                type="password" 
+                                id="profilePasswordConfirmInput" 
+                                name="password_confirmation" 
+                                class="cyber-input" 
+                                placeholder="Re-enter new passcode"
+                                autocomplete="new-password"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cyber-modal-footer">
+                    <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-md" onclick="closeProfileEditModal()">
+                        CANCEL
+                    </button>
+                    <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-md">
+                        <i class="fa-solid fa-floppy-disk"></i> SAVE PROFILE
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endauth
+
     <!-- Global Cyber UI Scripts -->
     <script>
         // Live UTC Clock
@@ -287,7 +404,64 @@
                 }
             });
         }
+
+        // Profile Edit Modal Handlers
+        function openProfileEditModal() {
+            const backdrop = document.getElementById('profileEditModalBackdrop');
+            if (backdrop) {
+                backdrop.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                const nameInput = document.getElementById('profileNameInput');
+                if (nameInput) nameInput.focus();
+            }
+        }
+
+        function closeProfileEditModal() {
+            const backdrop = document.getElementById('profileEditModalBackdrop');
+            if (backdrop) {
+                backdrop.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function toggleCurrentPasswordRequirement() {
+            const newPasswordInput = document.getElementById('profileNewPasswordInput');
+            const currentPasswordInput = document.getElementById('profileCurrentPasswordInput');
+            const confirmPasswordInput = document.getElementById('profilePasswordConfirmInput');
+            const passwordFieldsContainer = document.getElementById('passwordFieldsContainer');
+
+            if (!newPasswordInput || !passwordFieldsContainer) return;
+            const hasNewPassword = newPasswordInput.value.trim().length > 0;
+            passwordFieldsContainer.style.display = hasNewPassword ? 'block' : 'none';
+            if (currentPasswordInput) currentPasswordInput.required = hasNewPassword;
+            if (confirmPasswordInput) confirmPasswordInput.required = hasNewPassword;
+        }
+
+        document.addEventListener('click', function (e) {
+            const backdrop = document.getElementById('profileEditModalBackdrop');
+            if (backdrop && e.target === backdrop) {
+                closeProfileEditModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeProfileEditModal();
+            }
+        });
+
+        window.openProfileEditModal = openProfileEditModal;
+        window.closeProfileEditModal = closeProfileEditModal;
+        window.toggleCurrentPasswordRequirement = toggleCurrentPasswordRequirement;
+
+        @if ($errors->has('name') || $errors->has('current_password') || $errors->has('password'))
+        document.addEventListener('DOMContentLoaded', function () {
+            openProfileEditModal();
+            toggleCurrentPasswordRequirement();
+        });
+        @endif
     </script>
+
     <!-- Quill Rich Text Editor JS -->
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     @stack('scripts')

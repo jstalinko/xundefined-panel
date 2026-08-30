@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -68,6 +69,12 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
+            ActivityLog::create([
+                'type' => 'auth',
+                'description' => "User authenticated: {$user->name} | IP Address: " . $request->ip(),
+                'user_id' => $user->id,
+            ]);
+
             return redirect()->intended(route('dashboard'))
                 ->with('status', "ACCESS GRANTED // Identity verified: {$user->name}");
         }
@@ -130,8 +137,30 @@ class AuthController extends Controller
 
         $dbInvite->markAsUsed($user);
 
+        // Auto-purchase bound products if invite code has products_id
+        if (!empty($dbInvite->products_id) && is_array($dbInvite->products_id)) {
+            $products = \App\Models\Product::whereIn('id', $dbInvite->products_id)->get();
+            foreach ($products as $product) {
+                $invoice = 'INV-INVITE-' . strtoupper(bin2hex(random_bytes(3))) . '-' . $product->id . '-' . date('ymdHis');
+                \App\Models\Order::create([
+                    'invoice' => $invoice,
+                    'user_id' => $user->id,
+                    'product_id' => $product->id,
+                    'price' => $product->price,
+                    'payment_method' => 'invitecode',
+                    'status' => 'completed',
+                ]);
+            }
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
+
+        ActivityLog::create([
+            'type' => 'auth',
+            'description' => "New user registered successfully: {$user->name} ({$user->email}) via invite key {$inviteCodeStr} | IP Address: {$request->ip()}",
+            'user_id' => $user->id,
+        ]);
 
         return redirect()->route('dashboard')
             ->with('status', "INITIALIZATION COMPLETE // Clearance granted. Welcome to Mainframe, {$user->name}");

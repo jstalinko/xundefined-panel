@@ -118,111 +118,34 @@
     </div>
 </section>
 
-{{-- Interactive Cyber Diagnostic Panel --}}
+{{-- Cyber Activity Logs Panel --}}
 <div class="cyber-panel" style="margin-top: 10px;">
     <div class="cyber-panel-header">
         <div class="cyber-panel-title">
-            <i class="fa-solid fa-terminal"></i>
-            DIAGNOSTIC & TELEMETRY LAB
+            <i class="fa-solid fa-list-check"></i>
+            ACTIVITY LOGS
         </div>
         <span class="badge-status b-ok">REALTIME</span>
     </div>
 
-    <!-- Tabs Navigation -->
-    <div class="cyber-tabs-nav">
-        <button type="button" class="cyber-tab-btn active" onclick="switchTab('tab-terminal', this)">
-            <i class="fa-solid fa-terminal"></i>
-            <span>System Console</span>
-        </button>
-        <button type="button" class="cyber-tab-btn" onclick="switchTab('tab-invites', this)">
-            <i class="fa-solid fa-key"></i>
-            <span>Invite Token Verifier</span>
-        </button>
-        <button type="button" class="cyber-tab-btn" onclick="switchTab('tab-security', this)">
-            <i class="fa-solid fa-lock"></i>
-            <span>Security Matrix</span>
-        </button>
-    </div>
-
-    <!-- Tab 1: Terminal -->
-    <div id="tab-terminal" class="cyber-tab-panel active" style="margin-top: 16px;">
-        <div class="cyber-out-box" id="terminalOutputBox">
-<span class="hl-key">[INIT]</span> Neural Gateway v2.4 initialized on <span class="hl-named">{{ config('app.url') }}</span>
-<span class="hl-dec">[AUTH]</span> Operative authenticated: <span class="hl-hex">{{ $user->email }}</span> (UID #{{ $user->id }})
-<span class="hl-dec">[AUTH]</span> Role clearance verified: <span class="hl-val">{{ $user->role_name }}</span>
-<span class="hl-dec">[AUTH]</span> Token verified: <span class="hl-named">{{ $user->invite_key ?? 'GENESIS_TOKEN' }}</span>
-<span class="hl-key">[INFO]</span> Database connection: <span class="hl-val">MySQL 127.0.0.1:3306 [OK]</span>
-<span class="hl-key">[INFO]</span> Session encryption: <span class="hl-hex">ACTIVE // TLS 1.3</span>
-<span class="hl-key">[SYS]</span>  Memory utilization: <span class="hl-val">{{ round(memory_get_usage(true) / 1024 / 1024, 2) }} MB</span>
-<span class="hl-named">[READY]</span> System awaiting operative command input...
+    <div style="margin-top: 16px;">
+        <div class="cyber-out-box" id="terminalOutputBox" style="max-height: 320px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6; white-space: normal;">
+            <div style="color: var(--text-muted); margin-bottom: 6px;"><span class="hl-key">[INIT]</span> Activity Telemetry Engine initialized // Showing latest mainframe events</div>
+            @forelse ($activityLogs as $log)
+                @php
+                    $typeUpper = strtoupper($log->type ?? 'SYS');
+                    $badgeClass = match(strtolower($log->type ?? '')) {
+                        'auth' => 'hl-dec',
+                        'domain' => 'hl-key',
+                        'account' => 'hl-val',
+                        default => 'hl-named',
+                    };
+                @endphp
+                <div style="margin-bottom: 4px;"><span style="color: var(--text-muted);">[{{ $log->created_at ? $log->created_at->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s') }}]</span> <span class="{{ $badgeClass }}">[{{ $typeUpper }}]</span> @if ($log->user)<span class="hl-named">{{ $log->user->name }}</span>: @endif<span style="color: #e2e8f0;">{{ $log->description }}</span></div>
+            @empty
+                <div style="color: var(--text-muted);"><span class="hl-val">[EMPTY]</span> No activity logs recorded in mainframe yet.</div>
+            @endforelse
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
-            <button type="button" class="cyber-btn cyber-btn-primary cyber-btn-sm" onclick="runDiagnosticPulse(this)">
-                <i class="fa-solid fa-bolt"></i> RUN SYSTEM PULSE
-            </button>
-            <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-sm" onclick="clearConsole()">
-                <i class="fa-solid fa-eraser"></i> CLEAR CONSOLE
-            </button>
-        </div>
-    </div>
-
-    <!-- Tab 2: Invites -->
-    <div id="tab-invites" class="cyber-tab-panel" style="margin-top: 16px;">
-        <div class="desc-box">
-            Validate or generate 16-character cryptographic invite keys for registering new operatives into the system.
-        </div>
-        <div class="cyber-form-group">
-            <label class="cyber-label" for="inviteGenInput">
-                <i class="fa-solid fa-key"></i> CRYPTOGRAPHIC INVITE TOKEN GENERATOR
-            </label>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="inviteGenInput" class="cyber-input" value="{{ strtoupper(bin2hex(random_bytes(4))) }}" readonly style="max-width: 280px; font-weight: 700; color: var(--red-primary); letter-spacing: 0.14em;">
-                <button type="button" class="cyber-btn cyber-btn-primary cyber-btn-sm" onclick="generateNewInviteKey()">
-                    <i class="fa-solid fa-arrows-rotate"></i> REGENERATE TOKEN
-                </button>
-                <button type="button" class="cyber-copy-btn" onclick="copyInviteToken(this)">
-                    <i class="fa-solid fa-copy"></i> COPY TOKEN
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab 3: Security -->
-    <div id="tab-security" class="cyber-tab-panel" style="margin-top: 16px;">
-        <div class="desc-box">
-            Realtime security overview, cryptographic hashing status, and operative privileges.
-        </div>
-        <table class="info-table">
-            <thead>
-                <tr>
-                    <th>SECURITY VECTOR</th>
-                    <th>CONFIGURATION</th>
-                    <th>INTEGRITY STATUS</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Password Hashing</td>
-                    <td>Bcrypt Rounds: {{ config('hashing.bcrypt.rounds', 12) }}</td>
-                    <td><span class="badge-status b-ok"><i class="fa-solid fa-check"></i> HARDENED</span></td>
-                </tr>
-                <tr>
-                    <td>CSRF Protection</td>
-                    <td>XSRF-TOKEN Tokenized Middleware</td>
-                    <td><span class="badge-status b-ok"><i class="fa-solid fa-check"></i> ACTIVE</span></td>
-                </tr>
-                <tr>
-                    <td>Registration Gate</td>
-                    <td>Invite Key Token Required</td>
-                    <td><span class="badge-status b-ok"><i class="fa-solid fa-check"></i> ENFORCED</span></td>
-                </tr>
-                <tr>
-                    <td>Session Driver</td>
-                    <td>Database Payload Storage</td>
-                    <td><span class="badge-status b-ok"><i class="fa-solid fa-check"></i> SECURED</span></td>
-                </tr>
-            </tbody>
-        </table>
     </div>
 </div>
 @endsection
@@ -278,61 +201,6 @@
             filterNodes();
             searchInput.focus();
         });
-    }
-
-    // Tab Switcher
-    function switchTab(targetTabId, btn) {
-        document.querySelectorAll('.cyber-tab-panel').forEach(panel => {
-            panel.classList.remove('active');
-        });
-        document.querySelectorAll('.cyber-tab-btn').forEach(b => {
-            b.classList.remove('active');
-        });
-
-        const targetPanel = document.getElementById(targetTabId);
-        if (targetPanel) {
-            targetPanel.classList.add('active');
-        }
-        if (btn) {
-            btn.classList.add('active');
-        }
-    }
-
-    // Diagnostic Console Simulation
-    function runDiagnosticPulse(btn) {
-        const outBox = document.getElementById('terminalOutputBox');
-        if (!outBox) return;
-
-        const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        const randPing = Math.floor(Math.random() * 8) + 8;
-        const msg = `\n<span class="hl-key">[PULSE]</span> [${time}] Latency probe: <span class="hl-val">${randPing}ms</span> // Cipher link: <span class="hl-dec">100% HEALTHY</span>`;
-        outBox.innerHTML += msg;
-        outBox.scrollTop = outBox.scrollHeight;
-    }
-
-    function clearConsole() {
-        const outBox = document.getElementById('terminalOutputBox');
-        if (outBox) {
-            outBox.innerHTML = '<span class="hl-named">[CLEARED]</span> Console buffer reset by operative.';
-        }
-    }
-
-    // Invite Key Token Generator in Tab 2
-    function generateNewInviteKey() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let key = '';
-        for (let i = 0; i < 8; i++) {
-            key += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        const input = document.getElementById('inviteGenInput');
-        if (input) input.value = key;
-    }
-
-    function copyInviteToken(btn) {
-        const input = document.getElementById('inviteGenInput');
-        if (input) {
-            copyText(input.value, btn);
-        }
     }
 </script>
 @endpush

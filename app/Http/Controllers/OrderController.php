@@ -57,4 +57,30 @@ class OrderController extends Controller
 
         return view('admin.order.show', compact('user', 'order'));
     }
+
+    /**
+     * Update order details (domain_quota, status).
+     */
+    public function update(Request $request, string $id)
+    {
+        $order = Order::findOrFail($id);
+
+        $validated = $request->validate([
+            'domain_quota' => ['required', 'integer', 'min:0', 'max:9999'],
+            'status' => ['nullable', 'string', 'in:pending,processing,completed,cancelled'],
+        ]);
+
+        $updateData = [
+            'domain_quota' => (int) $validated['domain_quota'],
+        ];
+
+        if (!empty($validated['status'])) {
+            $updateData['status'] = $validated['status'];
+        }
+
+        $order->update($updateData);
+
+        return redirect()->route('order.index')
+            ->with('status', "Order '{$order->invoice}' domain quota updated to {$order->domain_quota} successfully!");
+    }
 }

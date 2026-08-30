@@ -90,6 +90,7 @@
                         <th>INVOICE</th>
                         <th>BUYER & EMAIL</th>
                         <th>PRODUCT</th>
+                        <th>DOMAIN QUOTA</th>
                         <th>AMOUNT</th>
                         <th>GATEWAY</th>
                         <th>STATUS</th>
@@ -105,9 +106,11 @@
                             <td>
                                 <div class="domain-name-cell">
                                     <i class="fa-solid fa-receipt" style="color: var(--red-primary); font-size: 0.85rem;"></i>
-                                    <code style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
-                                        {{ $ord->invoice }}
-                                    </code>
+                                    <a href="{{ route('order.show', $ord->id) }}" style="color: #ffffff; text-decoration: none;" title="View Audit Details">
+                                        <code style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                                            {{ $ord->invoice }}
+                                        </code>
+                                    </a>
                                     <button 
                                         type="button" 
                                         class="cyber-copy-btn" 
@@ -118,6 +121,11 @@
                                         <i class="fa-solid fa-copy"></i>
                                     </button>
                                 </div>
+                                @if ($ord->txn_id)
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;">
+                                        TXN: {{ Str::limit($ord->txn_id, 16) }}
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <div style="color: #ffffff; font-weight: 700; font-size: 0.86rem;">
@@ -132,6 +140,22 @@
                                     <i class="fa-solid fa-cube" style="color: var(--red-primary);"></i>
                                     {{ $ord->product->name ?? 'Product #' . $ord->product_id }}
                                 </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="badge-status" style="background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); color: #00e5ff; font-family: var(--font-mono); font-weight: 700; font-size: 0.78rem;">
+                                        <i class="fa-solid fa-globe"></i> {{ $ord->domain_quota }}
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        class="cyber-btn cyber-btn-xs" 
+                                        style="padding: 2px 6px; font-size: 0.68rem; background: rgba(0, 229, 255, 0.12); border: 1px solid rgba(0, 229, 255, 0.4); color: #00e5ff;"
+                                        onclick="openEditQuotaModal({{ json_encode($ord) }})"
+                                        title="Edit Domain Quota"
+                                    >
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.88rem;">
@@ -173,6 +197,65 @@
             {{ $orders->links() }}
         </div>
     @endif
+</div>
+{{-- Edit Order Domain Quota Modal --}}
+<div class="cyber-modal-backdrop" id="editQuotaModalBackdrop">
+    <div class="cyber-modal-window" style="max-width: 440px;">
+        <div class="cyber-corner top-left"></div>
+        <div class="cyber-corner top-right"></div>
+        <div class="cyber-corner bottom-left"></div>
+        <div class="cyber-corner bottom-right"></div>
+
+        <div class="cyber-modal-header">
+            <div class="cyber-modal-title">
+                <i class="fa-solid fa-globe" style="color: #00e5ff;"></i>
+                <span id="quotaModalTitle">EDIT DOMAIN QUOTA</span>
+            </div>
+            <button type="button" class="cyber-modal-close" onclick="closeEditQuotaModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="" method="POST" id="editQuotaForm">
+            @csrf
+            @method('PUT')
+
+            <div class="cyber-modal-body">
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="modalQuotaInvoice">INVOICE NUMBER</label>
+                    <input type="text" id="modalQuotaInvoice" class="cyber-input" readonly style="opacity: 0.7; font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 14px;">
+                    <label class="cyber-label" for="modalQuotaInput">
+                        <i class="fa-solid fa-sliders"></i> ALLOWED DOMAIN QUOTA *
+                    </label>
+                    <input 
+                        type="number" 
+                        id="modalQuotaInput" 
+                        name="domain_quota" 
+                        class="cyber-input" 
+                        min="0" 
+                        max="9999" 
+                        required 
+                        style="font-family: var(--font-mono); font-weight: 800; color: #00e5ff; font-size: 1rem;"
+                    >
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
+                        Max number of domains the buyer can register under this product license.
+                    </div>
+                </div>
+            </div>
+
+            <div class="cyber-modal-footer">
+                <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-md" onclick="closeEditQuotaModal()">
+                    CANCEL
+                </button>
+                <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-md">
+                    <i class="fa-solid fa-floppy-disk"></i> SAVE QUOTA
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
 
@@ -219,5 +302,47 @@
             orderSearchInput.focus();
         });
     }
+
+    // Edit Quota Modal Functions
+    function openEditQuotaModal(data) {
+        const backdrop = document.getElementById('editQuotaModalBackdrop');
+        const form = document.getElementById('editQuotaForm');
+        const invoiceInput = document.getElementById('modalQuotaInvoice');
+        const quotaInput = document.getElementById('modalQuotaInput');
+
+        if (backdrop && form) {
+            form.action = `/admin/order/${data.id}`;
+            if (invoiceInput) invoiceInput.value = data.invoice;
+            if (quotaInput) quotaInput.value = data.domain_quota;
+
+            backdrop.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => { if (quotaInput) quotaInput.focus(); }, 100);
+        }
+    }
+
+    function closeEditQuotaModal() {
+        const backdrop = document.getElementById('editQuotaModalBackdrop');
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const backdrop = document.getElementById('editQuotaModalBackdrop');
+        if (backdrop && e.target === backdrop) {
+            closeEditQuotaModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEditQuotaModal();
+        }
+    });
+
+    window.openEditQuotaModal = openEditQuotaModal;
+    window.closeEditQuotaModal = closeEditQuotaModal;
 </script>
 @endpush

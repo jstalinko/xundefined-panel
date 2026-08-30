@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invitecode;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -53,8 +54,9 @@ class InviteCodeController extends Controller
         ];
 
         $suggestedCode = Invitecode::generateCode();
+        $products = Product::all();
 
-        return view('admin.invitecode.index', compact('user', 'inviteCodes', 'suggestedCode', 'stats', 'search', 'statusFilter'));
+        return view('admin.invitecode.index', compact('user', 'inviteCodes', 'suggestedCode', 'stats', 'search', 'statusFilter', 'products'));
     }
 
     /**
@@ -72,6 +74,8 @@ class InviteCodeController extends Controller
             'expires_at' => ['nullable', 'date'],
             'expired_at' => ['nullable', 'date'],
             'generate_via' => ['nullable', 'string', 'max:50'],
+            'products_id' => ['nullable', 'array'],
+            'products_id.*' => ['integer', 'exists:products,id'],
         ], [
             'code.required' => 'Invite code string is required.',
             'code.unique' => 'This invite code is already registered in the system.',
@@ -84,11 +88,14 @@ class InviteCodeController extends Controller
             $expiryDate = date('Y-m-d H:i:s', strtotime($validated['expired_at']));
         }
 
+        $productIds = !empty($validated['products_id']) ? array_map('intval', $validated['products_id']) : [];
+
         $inviteCode = Invitecode::create([
             'code' => $validated['code'],
             'expired_at' => $expiryDate,
             'used' => false,
             'generate_via' => $validated['generate_via'] ?? 'admin',
+            'products_id' => $productIds,
         ]);
 
         return redirect()->route('invitecode.index')
@@ -111,6 +118,8 @@ class InviteCodeController extends Controller
             'expires_at' => ['nullable', 'date'],
             'expired_at' => ['nullable', 'date'],
             'used' => ['nullable'],
+            'products_id' => ['nullable', 'array'],
+            'products_id.*' => ['integer', 'exists:products,id'],
         ], [
             'code.required' => 'Invite code string is required.',
             'code.unique' => 'This invite code is already taken.',
@@ -123,10 +132,13 @@ class InviteCodeController extends Controller
             $expiryDate = date('Y-m-d H:i:s', strtotime($validated['expired_at']));
         }
 
+        $productIds = isset($validated['products_id']) ? array_map('intval', $validated['products_id']) : [];
+
         $inviteCode->update([
             'code' => $validated['code'],
             'expired_at' => $expiryDate,
             'used' => $request->boolean('used', false),
+            'products_id' => $productIds,
         ]);
 
         return redirect()->route('invitecode.index')
@@ -139,6 +151,12 @@ class InviteCodeController extends Controller
     public function destroy(string $id)
     {
         $inviteCode = Invitecode::findOrFail($id);
+
+        if ($inviteCode->used) {
+            return redirect()->route('invitecode.index')
+                ->with('error', "Claimed invite code '{$inviteCode->code}' cannot be deleted!");
+        }
+
         $code = $inviteCode->code;
         $inviteCode->delete();
 

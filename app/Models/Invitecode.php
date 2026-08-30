@@ -20,12 +20,14 @@ class Invitecode extends Model
         'used',
         'used_by_user_id',
         'generate_via',
+        'products_id',
     ];
 
     protected $casts = [
         'expired_at' => 'datetime',
         'used_at' => 'datetime',
         'used' => 'boolean',
+        'products_id' => 'array'
     ];
 
     /**

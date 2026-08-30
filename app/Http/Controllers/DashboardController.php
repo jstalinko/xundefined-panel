@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Domain;
 use App\Models\Order;
 use App\Models\Post;
@@ -9,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class DashboardController extends Controller
 {
@@ -71,7 +73,9 @@ class DashboardController extends Controller
             ],
         ];
 
-        return view('dashboard.index', compact('user', 'stats', 'toolNodes'));
+        $activityLogs = ActivityLog::with('user')->latest()->take(50)->get();
+
+        return view('dashboard.index', compact('user', 'stats', 'toolNodes', 'activityLogs'));
     }
 
     /**
@@ -163,6 +167,13 @@ class DashboardController extends Controller
             'domain' => $domainStr,
         ]);
 
+        $productName = Product::find($productId)->name;
+        ActivityLog::create([
+            'type' => 'domain',
+            'description' => "Domain registered  {$domainStr} for {$productName}",
+            'user_id' => $userId,
+        ]);
+
         return redirect()->route('dashboard.domain')->with('status', 'Domain ' . $domainStr . ' has been registered and bound successfully!');
     }
 
@@ -174,6 +185,12 @@ class DashboardController extends Controller
         $domain = Domain::where('user_id', Auth::id())->findOrFail($id);
         $domainName = $domain->domain;
         $domain->delete();
+
+        ActivityLog::create([
+            'type' => 'domain',
+            'description' => "Domain deleted : {$domainName}",
+            'user_id' => Auth::id(),
+        ]);
 
         return redirect()->route('dashboard.domain')->with('status', 'Domain ' . $domainName . ' has been disconnected.');
     }
@@ -400,6 +417,49 @@ class DashboardController extends Controller
     {
         Auth::logout();
         return redirect()->route('login');
+    }
+
+    /**
+     * Update user profile parameters (Name, Password).
+     */
+    public function updateProfile(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $rules = [
+            'name' => ['required', 'string', 'max:255'],
+        ];
+
+        if ($request->filled('password')) {
+            $rules['current_password'] = ['required', 'string', function ($attribute, $value, $fail) use ($user) {
+                if (!Hash::check($value, $user->password)) {
+                    $fail('Current password does not match system records.');
+                }
+            }];
+            $rules['password'] = ['required', 'string', 'min:8', 'confirmed'];
+        }
+
+        $validated = $request->validate($rules, [
+            'name.required' => 'Operative name is required.',
+            'current_password.required' => 'Current password is required to set a new password.',
+            'password.min' => 'New password must be at least 8 characters long.',
+            'password.confirmed' => 'New password confirmation does not match.',
+        ]);
+
+        $user->name = $validated['name'];
+        if ($request->filled('password')) {
+            $user->password = Hash::make($validated['password']);
+        }
+        $user->save();
+
+        ActivityLog::create([
+            'type' => 'account',
+            'description' => "Operative profile updated (Name: {$user->name}" . ($request->filled('password') ? ", Password updated" : "") . ")",
+            'user_id' => $user->id,
+        ]);
+
+        return redirect()->back()->with('status', 'PROFILE UPDATED // Security profile parameters saved successfully.');
     }
 }
 

@@ -242,3 +242,31 @@ test('admin can view posts management matrix and create new post', function () {
         'category' => 'announcement',
     ]);
 });
+
+test('admin can update order domain quota', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $member = User::factory()->create(['name' => 'Buyer QuotaTest']);
+    $product = Product::create([
+        'name' => 'Quota Managed Module',
+        'price' => 150000,
+        'active' => true,
+    ]);
+
+    $order = Order::create([
+        'invoice' => 'INV-QUOTA-1001',
+        'user_id' => $member->id,
+        'product_id' => $product->id,
+        'price' => 150000,
+        'payment_method' => 'CyberPay',
+        'domain_quota' => 1,
+        'status' => 'completed',
+    ]);
+
+    $response = $this->actingAs($admin)->put("/admin/order/{$order->id}", [
+        'domain_quota' => 5,
+    ]);
+
+    $response->assertRedirect('/admin/order');
+    $order->refresh();
+    expect($order->domain_quota)->toBe(5);
+});

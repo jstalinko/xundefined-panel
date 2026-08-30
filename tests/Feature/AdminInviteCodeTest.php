@@ -87,6 +87,25 @@ test('admin can delete an invite code', function () {
     ]);
 });
 
+test('admin cannot delete a claimed invite code', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $code = Invitecode::create([
+        'code' => 'XU-CLAIMED-NO-DELETE',
+        'used' => true,
+    ]);
+
+    $response = $this->actingAs($admin)->delete("/admin/invitecode/{$code->id}");
+    $response->assertRedirect('/admin/invitecode');
+    $response->assertSessionHas('error');
+
+    $this->assertDatabaseHas('invitecodes', [
+        'id' => $code->id,
+        'code' => 'XU-CLAIMED-NO-DELETE',
+        'used' => true,
+    ]);
+});
+
 test('admin can call random code generator endpoint', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
@@ -133,3 +152,61 @@ test('user cannot register with expired or claimed invite code', function () {
     $response->assertSessionHasErrors('invite_key');
     $this->assertGuest();
 });
+
+test('admin can create invite code with multiple bound products and auto purchase on user registration', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $p1 = \App\Models\Product::create([
+        'name' => 'Module Alpha',
+        'price' => 100,
+        'contents' => [],
+        'description' => 'Alpha module description',
+        'active' => true,
+    ]);
+
+    $p2 = \App\Models\Product::create([
+        'name' => 'Module Beta',
+        'price' => 200,
+        'contents' => [],
+        'description' => 'Beta module description',
+        'active' => true,
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/invitecode', [
+        'code' => 'XU-MULTI-PRODUCT',
+        'products_id' => [$p1->id, $p2->id],
+    ]);
+
+    $response->assertRedirect('/admin/invitecode');
+
+    $invite = Invitecode::where('code', 'XU-MULTI-PRODUCT')->first();
+    expect($invite)->not->toBeNull();
+    expect($invite->products_id)->toBe([$p1->id, $p2->id]);
+
+    // Unauthenticate admin so guest registration can proceed
+    Auth::logout();
+
+    // Register user with this invite code
+    $regResponse = $this->post('/register', [
+        'name' => 'Agent Buyer',
+        'email' => 'agentbuyer@example.com',
+        'password' => 'Passcode#123',
+        'password_confirmation' => 'Passcode#123',
+        'invite_key' => 'XU-MULTI-PRODUCT',
+    ]);
+
+    $regResponse->assertRedirect('/dashboard');
+
+    $registeredUser = User::where('email', 'agentbuyer@example.com')->first();
+    expect($registeredUser)->not->toBeNull();
+
+    $orders = \App\Models\Order::where('user_id', $registeredUser->id)->get();
+    expect($orders)->toHaveCount(2);
+
+    foreach ($orders as $order) {
+        expect($order->payment_method)->toBe('invitecode');
+        expect($order->status)->toBe('completed');
+        expect([$p1->id, $p2->id])->toContain($order->product_id);
+    }
+});
+

@@ -478,3 +478,105 @@ test('user can register localhost, 127.0.0.1, and custom port domains', function
     $res3->assertRedirect('/dashboard/domain');
     $this->assertDatabaseHas('domains', ['domain' => '127.0.0.0:3000']);
 });
+
+test('activity logs are recorded on auth events and domain register/delete events', function () {
+    $user = User::factory()->create(['password' => bcrypt('Passcode#123')]);
+
+    $product = Product::create([
+        'name' => 'Log Test Product',
+        'price' => 50000,
+        'description' => 'Product for logging tests',
+        'contents' => [],
+        'active' => true,
+    ]);
+
+    // Login activity
+    $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'Passcode#123',
+    ]);
+
+    $this->assertDatabaseHas('activity_logs', [
+        'type' => 'auth',
+        'user_id' => $user->id,
+    ]);
+
+    // Register domain activity
+    $this->actingAs($user)->post('/dashboard/domain', [
+        'domain' => 'logtest.example.com',
+        'product_id' => $product->id,
+    ]);
+
+    $this->assertDatabaseHas('activity_logs', [
+        'type' => 'domain',
+        'user_id' => $user->id,
+    ]);
+
+    $domain = Domain::where('domain', 'logtest.example.com')->first();
+
+    // Delete domain activity
+    $this->actingAs($user)->delete("/dashboard/domain/{$domain->id}");
+
+    $this->assertDatabaseHas('activity_logs', [
+        'type' => 'domain',
+        'user_id' => $user->id,
+    ]);
+
+    // View activity logs on dashboard
+    $dashRes = $this->actingAs($user)->get('/dashboard');
+    $dashRes->assertStatus(200);
+    $dashRes->assertSee('ACTIVITY LOGS');
+    $dashRes->assertSee('logtest.example.com');
+});
+
+test('user can update profile name without changing password', function () {
+    $user = User::factory()->create([
+        'name' => 'Agent OldName',
+        'password' => bcrypt('OldPass#123'),
+    ]);
+
+    $response = $this->actingAs($user)->put('/dashboard/profile', [
+        'name' => 'Agent NewName',
+    ]);
+
+    $response->assertRedirect();
+    $user->refresh();
+    expect($user->name)->toBe('Agent NewName');
+    expect(\Illuminate\Support\Facades\Hash::check('OldPass#123', $user->password))->toBeTrue();
+});
+
+test('user can update profile password with valid current password', function () {
+    $user = User::factory()->create([
+        'name' => 'Agent PassUpdate',
+        'password' => bcrypt('OldPass#123'),
+    ]);
+
+    $response = $this->actingAs($user)->put('/dashboard/profile', [
+        'name' => 'Agent PassUpdate',
+        'current_password' => 'OldPass#123',
+        'password' => 'NewPass#456',
+        'password_confirmation' => 'NewPass#456',
+    ]);
+
+    $response->assertRedirect();
+    $user->refresh();
+    expect(\Illuminate\Support\Facades\Hash::check('NewPass#456', $user->password))->toBeTrue();
+});
+
+test('profile password update fails with invalid current password', function () {
+    $user = User::factory()->create([
+        'name' => 'Agent WrongCurrent',
+        'password' => bcrypt('OldPass#123'),
+    ]);
+
+    $response = $this->actingAs($user)->put('/dashboard/profile', [
+        'name' => 'Agent WrongCurrent',
+        'current_password' => 'WrongCurrent#999',
+        'password' => 'NewPass#456',
+        'password_confirmation' => 'NewPass#456',
+    ]);
+
+    $response->assertSessionHasErrors('current_password');
+    $user->refresh();
+    expect(\Illuminate\Support\Facades\Hash::check('OldPass#123', $user->password))->toBeTrue();
+});

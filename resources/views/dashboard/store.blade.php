@@ -252,7 +252,7 @@
             </button>
         </div>
 
-        <form action="{{ route('dashboard.store.purchase') }}" method="POST">
+        <form id="orderPurchaseForm" action="{{ route('dashboard.coinpayments.create') }}" method="POST">
             @csrf
             <input type="hidden" name="product_id" id="orderProductId" value="">
 
@@ -281,15 +281,30 @@
                     <label class="cyber-label" for="paymentMethodSelect">
                         <i class="fa-solid fa-credit-card"></i> PAYMENT METHOD
                     </label>
-                    <select id="paymentMethodSelect" name="payment_method" class="cyber-select" required>
-                        <option value="CyberPay Instant Gateway">CyberPay Instant Gateway (Instant Activation)</option>
-                        <option value="QRIS Instant Settlement">QRIS Instant (QR Code)</option>
-                        <option value="BCA / Mandiri Virtual Account">BCA / Mandiri Virtual Account</option>
-                        <option value="Crypto USDT / BTC Gateway">Crypto USDT / BTC Gateway</option>
+                    <select id="paymentMethodSelect" name="payment_method" class="cyber-select" onchange="handlePaymentMethodChange()" required>
+                        <option value="CoinPayments" selected>Crypto ( USDT ,ETH, SOL)</option>
+                        <option value="QRIS">QRIS Instant (QR Code)</option>
                     </select>
                 </div>
 
-                <div style="background: rgba(0, 255, 102, 0.05); border: 1px solid rgba(0, 255, 102, 0.2); border-radius: var(--radius-sm); padding: 10px 14px; font-family: var(--font-mono); font-size: 0.72rem; color: #a3e635; display: flex; align-items: center; gap: 8px;">
+                {{-- Crypto Coin Selection (for CoinPayments) --}}
+                <div class="cyber-form-group" id="cryptoCurrencyGroup" style="margin-top: 14px;">
+                    <label class="cyber-label" for="cryptoCurrencySelect">
+                        <i class="fa-solid fa-coins" style="color: #00ff66;"></i> SELECT CRYPTOCURRENCY
+                    </label>
+                    <select id="cryptoCurrencySelect" name="currency2" class="cyber-select">
+                        <option value="USDT.TRC20" selected>Tether USDT (TRC-20) - Recommended / Low Fee</option>
+                        <option value="LTCT">LITECOINT TEST</option>
+                        <option value="USDT.SOL">USDT (SOL)</option>
+                        <option value="USDT.PRC20">USDT (Polygon/MATIC)</option>
+                        <option value="USDT.ERC20">USDT (USDT.ERC20)</option>
+                        <option value="USDT.BEP20">USDT (BEP20/BSC)</option>
+                        <option value="SOL">SOLANA</option>
+                        <option value="ETH">ETHEREUM</option>
+                    </select>
+                </div>
+
+                <div style="background: rgba(0, 255, 102, 0.05); border: 1px solid rgba(0, 255, 102, 0.2); border-radius: var(--radius-sm); padding: 10px 14px; font-family: var(--font-mono); font-size: 0.72rem; color: #a3e635; display: flex; align-items: center; gap: 8px; margin-top: 14px;">
                     <i class="fa-solid fa-circle-check"></i>
                     <span>Product license will be registered to <strong>{{ $user->name }}</strong> ({{ $user->email }}).</span>
                 </div>
@@ -299,8 +314,8 @@
                 <button type="button" class="cyber-btn cyber-btn-secondary cyber-btn-sm" onclick="closeOrderModal()">
                     <i class="fa-solid fa-xmark"></i> CANCEL
                 </button>
-                <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-sm">
-                    <i class="fa-solid fa-check"></i> CONFIRM & BUY
+                <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-sm" id="confirmBuyBtn">
+                    <i class="fa-solid fa-check"></i> PROCEED TO PAYMENT
                 </button>
             </div>
         </form>
@@ -379,12 +394,40 @@
 
     // Order Modal Controls
     const orderModal = document.getElementById('orderModal');
+    const orderPurchaseForm = document.getElementById('orderPurchaseForm');
+    const cryptoCurrencyGroup = document.getElementById('cryptoCurrencyGroup');
+    const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+    const confirmBuyBtn = document.getElementById('confirmBuyBtn');
+
+    function handlePaymentMethodChange() {
+        if (!paymentMethodSelect) return;
+        const method = paymentMethodSelect.value;
+        const isCoinPayments = method === 'CoinPayments' || method.includes('Crypto');
+
+        if (cryptoCurrencyGroup) {
+            cryptoCurrencyGroup.style.display = isCoinPayments ? 'block' : 'none';
+        }
+
+        if (orderPurchaseForm) {
+            orderPurchaseForm.action = isCoinPayments 
+                ? "{{ route('dashboard.coinpayments.create') }}" 
+                : "{{ route('dashboard.store.purchase') }}";
+        }
+
+        if (confirmBuyBtn) {
+            confirmBuyBtn.innerHTML = isCoinPayments 
+                ? '<i class="fa-solid fa-satellite-dish"></i> PROCEED TO PAYMENT' 
+                : '<i class="fa-solid fa-check"></i> CONFIRM & BUY';
+        }
+    }
 
     function openOrderModal(productId, productName, price, version) {
         document.getElementById('orderProductId').value = productId;
         document.getElementById('orderProductName').textContent = productName;
         document.getElementById('orderProductPrice').textContent = new Intl.NumberFormat('id-ID').format(price) + ' IDR';
         document.getElementById('orderProductVer').textContent = version || 'v1.0';
+
+        handlePaymentMethodChange();
 
         if (orderModal) {
             orderModal.classList.add('active');

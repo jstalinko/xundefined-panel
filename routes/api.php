@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\DomainController;
+use App\Http\Controllers\CoinPaymentsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -8,7 +9,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('/domain-validation',DomainController::class)->name('api.domain-validation');
+Route::post('/domain-validation', DomainController::class)->name('api.domain-validation');
+
 Route::get('/ping/{domain}', function ($domain) {
     $host = parse_url($domain, PHP_URL_HOST) ?? $domain;
     $host = preg_replace('#^https?://#', '', $host);
@@ -39,3 +41,11 @@ Route::get('/ping/{domain}', function ($domain) {
         'message' => 'Pong',
     ]);
 })->name('api.ping');
+
+// CoinPayments API Endpoints
+Route::prefix('coinpayments')->name('api.coinpayments.')->group(function () {
+    Route::post('/create-transaction', [CoinPaymentsController::class, 'createTransaction'])->name('create');
+    Route::post('/ipn', [CoinPaymentsController::class, 'handleIpn'])->name('ipn');
+    Route::get('/status/{invoice}', [CoinPaymentsController::class, 'checkStatus'])->name('status');
+    Route::get('/currencies', [CoinPaymentsController::class, 'getCurrencies'])->name('currencies');
+});
