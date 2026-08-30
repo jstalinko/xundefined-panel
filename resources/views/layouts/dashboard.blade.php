@@ -165,21 +165,21 @@
                 <div class="nav-section-title">OUR LINKS</div>
 
                 <div class="cyber-nav-item">
-                    <a href="https://t.me/x3344677" target="_blank" class="cyber-nav-link">
+                    <a href="https://t.me/xingzhengx" target="_blank" class="cyber-nav-link">
                         <i class="fa-solid fa-fire-burner"></i>
                         <span>Contact Us</span>
                     </a>
                 </div>
 
                 <div class="cyber-nav-item">
-                    <a href="https://t.me/undefinxed" target="_blank" class="cyber-nav-link">
+                    <a href="https://t.me/+pMDMvStcQPU2N2Ex" target="_blank" class="cyber-nav-link">
                         <i class="fa-solid fa-id-card-clip"></i>
-                        <span>xChitChat</span>
+                        <span>Telegram Chats</span>
                     </a>
                 </div>
 
                 <div class="cyber-nav-item">
-                    <a href="https://t.me/xdevlogs" target="_blank" class="cyber-nav-link">
+                    <a href="https://t.me/xundefinedchannel" target="_blank" class="cyber-nav-link">
                         <i class="fa-solid fa-list-check"></i>
                         <span>Channels</span>
                     </a>
