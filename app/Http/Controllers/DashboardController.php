@@ -75,7 +75,9 @@ class DashboardController extends Controller
 
         $activityLogs = ActivityLog::with('user')->latest()->take(50)->get();
 
-        return view('dashboard.index', compact('user', 'stats', 'toolNodes', 'activityLogs'));
+        $latestNotes = Post::where('is_published', true)->latest()->take(5)->get();
+
+        return view('dashboard.index', compact('user', 'stats', 'toolNodes', 'activityLogs', 'latestNotes'));
     }
 
     /**

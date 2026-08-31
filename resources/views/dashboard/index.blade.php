@@ -118,8 +118,60 @@
     </div>
 </section>
 
+{{-- Latest xNotes Panel --}}
+<div class="cyber-panel" style="margin-top: 24px;">
+    <div class="cyber-panel-header">
+        <div class="cyber-panel-title">
+            <i class="fa-solid fa-note-sticky"></i>
+            LATEST XNOTES
+            <a href="{{ route('dashboard.notes') }}" class="cyber-btn cyber-btn-xs" style="margin-left: 12px; padding: 2px 8px; font-size: 0.68rem;">
+                VIEW ALL <i class="fa-solid fa-arrow-right" style="margin-left: 4px;"></i>
+            </a>
+        </div>
+        <span class="badge-status b-ok">LIVE FEED</span>
+    </div>
+
+    <div style="margin-top: 12px;">
+        @forelse ($latestNotes as $note)
+            @php
+                $catColor = match($note->category) {
+                    'announcement' => 'var(--red-primary)',
+                    'news' => '#48cae4',
+                    'changelog' => 'var(--status-online)',
+                    'tutorial' => '#ffd166',
+                    'promotion' => '#f72585',
+                    default => '#a0a0a0'
+                };
+                $catBg = match($note->category) {
+                    'announcement' => 'rgba(255, 23, 68, 0.12)',
+                    'news' => 'rgba(72, 202, 228, 0.12)',
+                    'changelog' => 'rgba(0, 255, 102, 0.12)',
+                    'tutorial' => 'rgba(255, 209, 102, 0.12)',
+                    'promotion' => 'rgba(247, 37, 133, 0.12)',
+                    default => 'rgba(255, 255, 255, 0.08)'
+                };
+            @endphp
+            <a href="{{ route('dashboard.notes.detail', $note->slug) }}" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid {{ $catColor }}; border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.02); transition: background 0.2s, border-color 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.06)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.02)'">
+                <span style="flex-shrink: 0; font-family: var(--font-mono); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--radius-sm); background: {{ $catBg }}; border: 1px solid {{ $catColor }}; color: {{ $catColor }};">
+                    {{ strtoupper($note->category) }}
+                </span>
+                <span style="flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ $note->title }}
+                </span>
+                <span style="flex-shrink: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.68rem;">
+                    <i class="fa-solid fa-calendar-days" style="margin-right: 4px;"></i>{{ $note->created_at ? $note->created_at->format('M d, Y') : 'Recent' }}
+                </span>
+            </a>
+        @empty
+            <div style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem; padding: 12px;">
+                <span class="hl-val">[EMPTY]</span> No published notes available in the feed yet.
+            </div>
+        @endforelse
+    </div>
+</div>
+
 {{-- Cyber Activity Logs Panel --}}
-<div class="cyber-panel" style="margin-top: 10px;">
+<div class="cyber-panel" style="margin-top: 24px;">
     <div class="cyber-panel-header">
         <div class="cyber-panel-title">
             <i class="fa-solid fa-list-check"></i>

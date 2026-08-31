@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Cyber Store Matrix')
-@section('page-title', 'XSTORE MATRIX')
+@section('title', 'xStore')
+@section('page-title', 'XSTORE')
 
 @section('content')
 {{-- Flash Status Notifications --}}
@@ -131,9 +131,7 @@
                 {{-- Card Top Ribbon --}}
                 <div class="cyber-card-topbar">
                     <div class="cyber-badge-group">
-                        <span class="cyber-node-badge">
-                            <i class="fa-solid fa-cube"></i> PRODUCT #{{ sprintf('%02d', $product->id) }}
-                        </span>
+                       
                         <span class="cyber-ver-badge">v{{ $version }}</span>
                     </div>
                     @if ($isPurchased)

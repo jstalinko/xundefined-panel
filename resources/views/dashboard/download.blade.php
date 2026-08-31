@@ -134,9 +134,7 @@
                             {{-- Top Ribbons --}}
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
                                 <div class="cyber-badge-group">
-                                    <span class="cyber-node-badge">
-                                        <i class="fa-solid fa-cube"></i> PRODUCT #{{ sprintf('%02d', $product->id ?? $order->product_id) }}
-                                    </span>
+                                    
                                     <span class="cyber-ver-badge">LATEST: v{{ $latestVer }}</span>
                                 </div>
                                 <span class="cyber-status-pill status-owned">
