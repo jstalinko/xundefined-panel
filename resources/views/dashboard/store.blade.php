@@ -283,7 +283,7 @@
                     </label>
                     <select id="paymentMethodSelect" name="payment_method" class="cyber-select" onchange="handlePaymentMethodChange()" required>
                         <option value="CoinPayments" selected>Crypto ( USDT ,ETH, SOL)</option>
-                        <option value="QRIS">QRIS Instant (QR Code)</option>
+                        <option value="ManualPayment">Other Payment / Bank Transfer</option>
                     </select>
                 </div>
 
@@ -293,14 +293,14 @@
                         <i class="fa-solid fa-coins" style="color: #00ff66;"></i> SELECT CRYPTOCURRENCY
                     </label>
                     <select id="cryptoCurrencySelect" name="currency2" class="cyber-select">
-                        <option value="USDT.TRC20" selected>Tether USDT (TRC-20) - Recommended / Low Fee</option>
+                        <option value="USDT.TRC20" selected> USDT (TRC-20)</option>
                         <option value="LTCT">LITECOINT TEST</option>
                         <option value="USDT.SOL">USDT (SOL)</option>
-                        <option value="USDT.PRC20">USDT (Polygon/MATIC)</option>
                         <option value="USDT.ERC20">USDT (USDT.ERC20)</option>
                         <option value="USDT.BEP20">USDT (BEP20/BSC)</option>
                         <option value="SOL">SOLANA</option>
                         <option value="ETH">ETHEREUM</option>
+                        <option value="BNB.BSC">BNB (BSC)</option>
                     </select>
                 </div>
 
@@ -417,8 +417,21 @@
         if (confirmBuyBtn) {
             confirmBuyBtn.innerHTML = isCoinPayments 
                 ? '<i class="fa-solid fa-satellite-dish"></i> PROCEED TO PAYMENT' 
-                : '<i class="fa-solid fa-check"></i> CONFIRM & BUY';
+                : '<i class="fa-brands fa-telegram"></i> ORDER VIA TELEGRAM';
         }
+    }
+
+    if (orderPurchaseForm) {
+        orderPurchaseForm.addEventListener('submit', function(e) {
+            if (paymentMethodSelect && paymentMethodSelect.value === 'ManualPayment') {
+                e.preventDefault();
+                const productName = document.getElementById('orderProductName').textContent.trim();
+                const message = "Hello, i wanna buy the " + productName;
+                const telegramUrl = "https://t.me/xingzhengx?text=" + encodeURIComponent(message);
+                window.open(telegramUrl, '_blank');
+                closeOrderModal();
+            }
+        });
     }
 
     function openOrderModal(productId, productName, price, version) {
