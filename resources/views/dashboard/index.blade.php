@@ -85,7 +85,7 @@
     <!-- Cards Launcher Matrix -->
     <div class="menu-grid" id="toolsGrid">
         @foreach ($toolNodes as $node)
-            <div class="tool-card tool-node-item" data-title="{{ strtolower($node['title']) }}" data-desc="{{ strtolower($node['description']) }}" data-category="{{ $node['category'] }}">
+            <div class="tool-card tool-node-item" data-title="{{ strtolower($node['title']) }}" data-desc="{{ strtolower($node['description']) }}" data-category="{{ $node['category'] }}" onclick="window.open('{{ $node['route'] }}', '_blank', 'noopener,noreferrer')">
                 <div class="card-glow"></div>
                 
                 <div class="tool-card-header">
