@@ -41,7 +41,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-envelope-circle-check',
                 'title' => 'SMTP Tester',
                 'description' => 'Test and verify SMTP server connections, authentication, and email delivery.',
-                'route' => '#smtp-tester',
+                'route' => 'https://lab.xundefined.cc/tools/smtp-tester.php?pk=XU-XXXX-TOOLS-FREE-ACCESS-TOKEN',
                 'category' => 'mail'
             ],
             [
@@ -50,7 +50,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-code-compare',
                 'title' => 'Encode & Obfuscate Studio',
                 'description' => 'Encode, decode, and obfuscate payloads with Base64, Hex, URL, and hash tools.',
-                'route' => '#encode-obfuscate',
+                'route' => 'https://lab.xundefined.cc/tools/encode-tools.php?pk=XU-XXXX-TOOLS-FREE-ACCESS-TOKEN',
                 'category' => 'crypto'
             ],
             [
@@ -59,7 +59,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-credit-card',
                 'title' => 'Bin Checker',
                 'description' => 'Lookup Bank Identification Number (BIN) information, issuer bank, card brand, and country.',
-                'route' => '#bin-checker',
+                'route' => 'https://lab.xundefined.cc/tools/bin.php?pk=XU-XXXX-TOOLS-FREE-ACCESS-TOKEN',
                 'category' => 'financial'
             ],
             [
@@ -68,7 +68,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-location-dot',
                 'title' => 'IP Geo Lookup',
                 'description' => 'Inspect IP address geographical location, ISP, ASN details, and connection routing.',
-                'route' => '#ip-geo-lookup',
+                'route' => 'https://lab.xundefined.cc/tools/ip-info.php?pk=XU-XXXX-TOOLS-FREE-ACCESS-TOKEN',
                 'category' => 'network'
             ],
         ];
