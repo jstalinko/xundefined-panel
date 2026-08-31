@@ -580,3 +580,61 @@ test('profile password update fails with invalid current password', function () 
     $user->refresh();
     expect(\Illuminate\Support\Facades\Hash::check('OldPass#123', $user->password))->toBeTrue();
 });
+
+test('store only shows products where published is true and renders html description in accordion', function () {
+    $user = User::factory()->create();
+
+    $publishedProduct = Product::create([
+        'name' => 'Published Cyber Tool',
+        'price' => 150000,
+        'description' => '<p>This is a <strong>strong</strong> feature list with <em>rich HTML</em>.</p>',
+        'contents' => [['file' => 'tool.zip', 'version' => '1.0.0', 'md5sum' => 'abc123']],
+        'active' => true,
+        'published' => true,
+    ]);
+
+    $unpublishedProduct = Product::create([
+        'name' => 'Draft Unreleased Module',
+        'price' => 200000,
+        'description' => '<p>Secret unreleased payload.</p>',
+        'contents' => [['file' => 'secret.zip', 'version' => '1.0.0', 'md5sum' => 'def456']],
+        'active' => true,
+        'published' => false,
+    ]);
+
+    $response = $this->actingAs($user)->get('/dashboard/store');
+    $response->assertStatus(200);
+    $response->assertSee('Published Cyber Tool');
+    $response->assertDontSee('Draft Unreleased Module');
+    $response->assertSee('Show Description');
+    $response->assertSee('<p>This is a <strong>strong</strong> feature list with <em>rich HTML</em>.</p>', false);
+});
+
+test('download page displays show description accordion and renders html description', function () {
+    $user = User::factory()->create();
+
+    $product = Product::create([
+        'name' => 'HTML Desc Module',
+        'price' => 300000,
+        'description' => '<p>Full package with <code>code snippets</code> &amp; feature list.</p>',
+        'contents' => [['file' => 'html-tool.zip', 'version' => '1.0.0', 'md5sum' => 'abcdef1234567890']],
+        'active' => true,
+        'published' => true,
+    ]);
+
+    Order::create([
+        'invoice' => 'INV-HTML-TEST',
+        'user_id' => $user->id,
+        'product_id' => $product->id,
+        'price' => 300000,
+        'payment_method' => 'CyberPay',
+        'status' => 'completed',
+    ]);
+
+    $response = $this->actingAs($user)->get('/dashboard/download');
+    $response->assertStatus(200);
+    $response->assertSee('HTML Desc Module');
+    $response->assertSee('Show Description');
+    $response->assertSee('<p>Full package with <code>code snippets</code> &amp; feature list.</p>', false);
+});
+

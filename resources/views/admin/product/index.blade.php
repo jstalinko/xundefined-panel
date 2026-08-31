@@ -217,11 +217,6 @@
                                         <i class="fa-solid fa-copy"></i>
                                     </button>
                                 </div>
-                                @if ($prod->description)
-                                    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        {{ strip_tags($prod->description) }}
-                                    </div>
-                                @endif
                             </td>
                             <td>
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.88rem;">

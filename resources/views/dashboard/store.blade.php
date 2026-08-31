@@ -123,7 +123,7 @@
             <div 
                 class="cyber-card-item store-card-item {{ $isPurchased ? 'is-owned' : '' }}" 
                 data-title="{{ strtolower($product->name) }}" 
-                data-desc="{{ strtolower($product->description ?? '') }}"
+                data-desc="{{ strtolower(strip_tags($product->description ?? '')) }}"
                 data-status="{{ $isPurchased ? 'purchased' : 'available' }}"
             >
                 <div class="card-glow-layer"></div>

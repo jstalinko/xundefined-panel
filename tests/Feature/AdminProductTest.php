@@ -61,6 +61,9 @@ test('admin can view products list and search products', function () {
     $response->assertSee('Cyber Packet Sniffer');
     $response->assertSee('DNS Tunnel Gateway');
     $response->assertSee('PRODUCT CATALOG MANAGEMENT');
+    // Description should not be shown in the table under product name
+    $response->assertDontSee('Real-time packet capture tool');
+    $response->assertDontSee('Encrypted DNS tunneling binary');
 
     // Search query test
     $searchResponse = $this->actingAs($admin)->get('/admin/product?q=Sniffer');

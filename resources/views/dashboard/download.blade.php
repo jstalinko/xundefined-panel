@@ -123,6 +123,7 @@
                 data-title="{{ strtolower($product->name ?? '') }}" 
                 data-invoice="{{ strtolower($order->invoice) }}"
                 data-file="{{ strtolower($latestFile) }}"
+                data-desc="{{ strtolower(strip_tags($product->description ?? '')) }}"
             >
                 <div class="card-glow-layer"></div>
 
@@ -157,10 +158,22 @@
                                 </div>
                             </div>
 
-                            {{-- Description --}}
-                            <p class="cyber-card-text" style="font-size: 0.84rem; margin-bottom: 16px;">
-                                {{ $product->description ?? 'Official release package with verified file integrity.' }}
-                            </p>
+                            {{-- Show / Hide Description --}}
+                            <div class="product-desc-wrapper" style="margin-bottom: 14px;">
+                                <button 
+                                    type="button" 
+                                    class="cyber-toggle-desc-btn" 
+                                    onclick="toggleProductDesc({{ $order->id }}, this)"
+                                >
+                                    <span class="btn-text">Show Description</span>
+                                    <i class="fa-solid fa-chevron-down toggle-chevron"></i>
+                                </button>
+                                <div id="desc-collapse-{{ $order->id }}" class="product-desc-content" style="display: none;">
+                                    <div class="cyber-card-text ql-editor" style="margin: 0; padding: 0; min-height: unset; font-size: 0.84rem;">
+                                        {!! $product->description ?? 'Official software package release with complete documentation and features.' !!}
+                                    </div>
+                                </div>
+                            </div>
 
                             {{-- License & Order Meta Box --}}
                             <div class="cyber-spec-hud">
@@ -380,6 +393,24 @@
 
 @push('scripts')
 <script>
+    // Toggle Product Description
+    function toggleProductDesc(id, btn) {
+        const content = document.getElementById('desc-collapse-' + id);
+        if (!content) return;
+        const textSpan = btn.querySelector('.btn-text');
+        const isHidden = content.style.display === 'none' || content.style.display === '';
+        
+        if (isHidden) {
+            content.style.display = 'block';
+            btn.classList.add('active');
+            if (textSpan) textSpan.textContent = 'Hide Description';
+        } else {
+            content.style.display = 'none';
+            btn.classList.remove('active');
+            if (textSpan) textSpan.textContent = 'Show Description';
+        }
+    }
+
     // Live Search Filter for Downloads
     const downloadSearch = document.getElementById('downloadSearchInput');
     const clearDownloadBtn = document.getElementById('clearDownloadSearchBtn');
@@ -400,8 +431,9 @@
             const title = card.getAttribute('data-title') || '';
             const invoice = card.getAttribute('data-invoice') || '';
             const file = card.getAttribute('data-file') || '';
+            const desc = card.getAttribute('data-desc') || '';
 
-            if (title.includes(query) || invoice.includes(query) || file.includes(query)) {
+            if (title.includes(query) || invoice.includes(query) || file.includes(query) || desc.includes(query)) {
                 card.style.display = 'flex';
                 matches++;
             } else {

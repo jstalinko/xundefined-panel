@@ -366,7 +366,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        $products = Product::where('active', true)->latest()->get();
+        $products = Product::where('published', true)->latest()->get();
 
         $purchasedProductIds = Order::where('user_id', $user->id)
             ->where('status', 'completed')
