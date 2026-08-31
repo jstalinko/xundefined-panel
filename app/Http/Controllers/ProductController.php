@@ -16,12 +16,14 @@ class ProductController extends Controller
         $user = Auth::user();
         $search = $request->query('q');
         $statusFilter = $request->query('status');
+        $publishedFilter = $request->query('published');
 
         $query = Product::latest();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('pid', 'like', '%' . $search . '%')
                   ->orWhere('description', 'like', '%' . $search . '%');
             });
         }
@@ -30,15 +32,41 @@ class ProductController extends Controller
             $query->where('active', (bool) $statusFilter);
         }
 
+        if ($publishedFilter !== null && $publishedFilter !== '') {
+            $query->where('published', (bool) $publishedFilter);
+        }
+
         $products = $query->paginate(10)->withQueryString();
 
         $stats = [
             'total' => Product::count(),
             'active' => Product::where('active', true)->count(),
             'inactive' => Product::where('active', false)->count(),
+            'published' => Product::where('published', true)->count(),
+            'unpublished' => Product::where('published', false)->count(),
         ];
 
-        return view('admin.product.index', compact('user', 'products', 'search', 'statusFilter', 'stats'));
+        return view('admin.product.index', compact('user', 'products', 'search', 'statusFilter', 'publishedFilter', 'stats'));
+    }
+
+    /**
+     * Toggle the published status of a product.
+     */
+    public function togglePublish(Request $request, string $id)
+    {
+        $product = Product::findOrFail($id);
+        $product->published = !$product->published;
+        $product->save();
+
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'published' => $product->published,
+                'message' => "Product '{$product->name}' " . ($product->published ? 'published' : 'unpublished') . ' successfully!',
+            ]);
+        }
+
+        return redirect()->back()->with('status', "Product '{$product->name}' " . ($product->published ? 'published' : 'unpublished') . ' successfully!');
     }
 
     /**
@@ -58,22 +86,31 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'pid' => ['nullable', 'string', 'max:100', 'unique:products,pid'],
             'price' => ['required', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
             'active' => ['nullable'],
+            'published' => ['nullable'],
             'contents_raw' => ['nullable', 'string'],
             'releases' => ['nullable', 'array'],
         ]);
 
         $contents = $this->parseContents($request);
 
-        $product = Product::create([
+        $productData = [
             'name' => trim($validated['name']),
             'price' => (int) $validated['price'],
             'description' => $validated['description'] ?? null,
             'active' => $request->boolean('active', true),
+            'published' => $request->boolean('published', true),
             'contents' => $contents,
-        ]);
+        ];
+
+        if (!empty($validated['pid'])) {
+            $productData['pid'] = trim($validated['pid']);
+        }
+
+        $product = Product::create($productData);
 
         $redirectRoute = routeExists('admin.product.index') ? 'admin.product.index' : 'product.index';
         return redirect()->route($redirectRoute)->with('status', "Product '{$product->name}' created successfully!");
@@ -111,22 +148,33 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'pid' => ['nullable', 'string', 'max:100', 'unique:products,pid,' . $product->id],
             'price' => ['required', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
             'active' => ['nullable'],
+            'published' => ['nullable'],
             'contents_raw' => ['nullable', 'string'],
             'releases' => ['nullable', 'array'],
         ]);
 
         $contents = $this->parseContents($request);
 
-        $product->update([
+        $productData = [
             'name' => trim($validated['name']),
             'price' => (int) $validated['price'],
             'description' => $validated['description'] ?? null,
             'active' => $request->boolean('active', false),
+            'published' => $request->boolean('published', false),
             'contents' => $contents,
-        ]);
+        ];
+
+        if ($request->filled('pid')) {
+            $productData['pid'] = trim($validated['pid']);
+        } elseif (empty($product->pid)) {
+            $productData['pid'] = 'PID-' . strtoupper(\Illuminate\Support\Str::random(10));
+        }
+
+        $product->update($productData);
 
         $redirectRoute = routeExists('admin.product.index') ? 'admin.product.index' : 'product.index';
         return redirect()->route($redirectRoute)->with('status', "Product '{$product->name}' updated successfully!");

@@ -55,6 +55,7 @@ Route::group(['prefix' => '/dashboard', 'middleware' => ['auth']], function () {
 
 Route::group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::patch('/product/{id}/toggle-publish', [ProductController::class, 'togglePublish'])->name('product.toggle-publish');
     Route::resource('/product', ProductController::class);
     Route::resource('/order', OrderController::class);
     Route::resource('/post', PostController::class);

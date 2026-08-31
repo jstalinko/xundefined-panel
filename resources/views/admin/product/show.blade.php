@@ -32,22 +32,77 @@
                 <i class="fa-solid fa-circle-info"></i>
                 SPECIFICATIONS
             </div>
-            @if ($product->active)
-                <span class="badge-status b-ok"><span class="status-dot online"></span> ACTIVE</span>
-            @else
-                <span class="badge-status b-err"><span class="status-dot offline"></span> INACTIVE</span>
-            @endif
+            <div style="display: flex; gap: 8px; align-items: center;">
+                @if ($product->published)
+                    <span class="badge-status b-ok"><span class="status-dot online"></span> PUBLISHED</span>
+                @else
+                    <span class="badge-status b-err"><span class="status-dot offline"></span> DRAFT</span>
+                @endif
+
+                @if ($product->active)
+                    <span class="badge-status b-ok"><span class="status-dot online"></span> ACTIVE</span>
+                @else
+                    <span class="badge-status b-err"><span class="status-dot offline"></span> INACTIVE</span>
+                @endif
+            </div>
         </div>
 
         <table class="info-table">
             <tbody>
                 <tr>
-                    <th style="width: 140px;">PRODUCT ID</th>
+                    <th style="width: 140px;">DATABASE ID</th>
                     <td style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">#{{ $product->id }}</td>
+                </tr>
+                <tr>
+                    <th>IDENTIFIER (PID)</th>
+                    <td>
+                        <div style="display: inline-flex; align-items: center; gap: 8px;">
+                            <span style="font-family: var(--font-mono); font-weight: 700; color: #48cae4; background: rgba(72, 202, 228, 0.1); border: 1px solid rgba(72, 202, 228, 0.3); padding: 3px 10px; border-radius: var(--radius-sm); font-size: 0.85rem;">
+                                {{ $product->pid ?: 'PID-' . sprintf('%04d', $product->id) }}
+                            </span>
+                            <button 
+                                type="button" 
+                                class="cyber-copy-btn" 
+                                style="padding: 3px 8px; font-size: 0.72rem;" 
+                                onclick="copyText('{{ $product->pid ?: 'PID-' . sprintf('%04d', $product->id) }}', this)" 
+                                title="Copy PID"
+                            >
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>
                 <tr>
                     <th>NAME</th>
                     <td style="font-weight: 700; color: #ffffff;">{{ $product->name }}</td>
+                </tr>
+                <tr>
+                    <th>PUBLISH STATUS</th>
+                    <td>
+                        @if ($product->published)
+                            <span class="badge-status b-ok" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-circle-check"></i> Published (Publicly Listed & Enabled for License Validation)
+                            </span>
+                        @else
+                            <span class="badge-status b-err" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-eye-slash"></i> Draft / Unpublished
+                            </span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>STORE STATUS</th>
+                    <td>
+                        @if ($product->active)
+                            <span class="badge-status b-ok" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-store"></i> Active (Purchasable in Store)
+                            </span>
+                        @else
+                            <span class="badge-status b-err" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-ban"></i> Inactive
+                            </span>
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <th>PRICE</th>

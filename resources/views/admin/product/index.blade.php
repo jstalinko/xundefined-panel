@@ -3,6 +3,74 @@
 @section('title', 'Manage Products - Admin')
 @section('page-title', 'MANAGE PRODUCTS')
 
+@push('styles')
+<style>
+    .cyber-switch {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 20px;
+        vertical-align: middle;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    .cyber-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        margin: 0;
+    }
+    .cyber-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 20px;
+    }
+    .cyber-slider:before {
+        position: absolute;
+        content: "";
+        height: 12px;
+        width: 12px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #888888;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 50%;
+    }
+    .cyber-switch input:checked + .cyber-slider {
+        background-color: rgba(0, 255, 102, 0.25);
+        border-color: var(--status-online);
+        box-shadow: 0 0 10px rgba(0, 255, 102, 0.35);
+    }
+    .cyber-switch input:checked + .cyber-slider:before {
+        transform: translateX(18px);
+        background-color: var(--status-online);
+        box-shadow: 0 0 6px var(--status-online);
+    }
+    .cyber-switch input:focus + .cyber-slider {
+        outline: 1px solid var(--status-online);
+    }
+    .cyber-switch input:disabled + .cyber-slider {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    .pid-badge {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: #48cae4;
+        background: rgba(72, 202, 228, 0.1);
+        border: 1px solid rgba(72, 202, 228, 0.3);
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        letter-spacing: 0.5px;
+    }
+</style>
+@endpush
+
 @section('content')
 {{-- Flash Status Notification --}}
 @if (session('status'))
@@ -27,13 +95,18 @@
             <span class="prompt-symbol">&gt;</span>
             <span class="prompt-cmd">list --catalog</span>
         </div>
-        <span class="terminal-badge">CATALOG: {{ $stats['total'] }} PRODUCTS</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="terminal-badge">CATALOG: {{ $stats['total'] }} PRODUCTS</span>
+            <span class="terminal-badge" style="border-color: rgba(0, 255, 102, 0.35); color: var(--status-online);">
+                <i class="fa-solid fa-circle-check"></i> {{ $stats['published'] ?? 0 }} PUBLISHED
+            </span>
+        </div>
     </div>
     <div class="terminal-banner-body">
         <div class="welcome-copy">
             <h1 class="welcome-heading">PRODUCT CATALOG MANAGEMENT</h1>
             <p class="welcome-subtext">
-                Create, update, release version packages, configure prices, and manage software payloads.
+                Create, update, release version packages, configure prices, publish status, and manage product identifiers (PID).
             </p>
         </div>
 
@@ -45,7 +118,7 @@
                     type="text" 
                     id="productClientSearch" 
                     class="tool-filter-input" 
-                    placeholder="Search products by name or description..."
+                    placeholder="Search products by PID, name or description..."
                     autocomplete="off"
                 >
                 <button type="button" id="clearProdSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">
@@ -91,15 +164,16 @@
             </a>
         </div>
     @else
-        {{-- Table identical in layout and styles to domain.blade.php --}}
         <div class="cyber-table-container">
             <table class="cyber-data-table" id="productsTable">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">#</th>
+                        <th style="width: 45px;">#</th>
+                        <th>PID</th>
                         <th>PRODUCT NAME</th>
                         <th>PRICE</th>
                         <th>RELEASES</th>
+                        <th>PUBLISHED</th>
                         <th>STATUS</th>
                         <th>CREATED DATE</th>
                         <th style="text-align: right;">ACTIONS</th>
@@ -107,9 +181,25 @@
                 </thead>
                 <tbody>
                     @foreach ($products as $index => $prod)
-                        <tr class="product-row-item" data-name="{{ strtolower($prod->name) }}" data-desc="{{ strtolower($prod->description ?? '') }}">
+                        <tr class="product-row-item" data-name="{{ strtolower($prod->name) }}" data-pid="{{ strtolower($prod->pid ?? '') }}" data-desc="{{ strtolower($prod->description ?? '') }}">
                             <td style="color: var(--text-muted); font-weight: 700;">
                                 {{ sprintf('%02d', $index + 1) }}
+                            </td>
+                            <td>
+                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="pid-badge" title="Product Identifier (PID)">
+                                        {{ $prod->pid ?: 'PID-' . sprintf('%04d', $prod->id) }}
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        class="cyber-copy-btn" 
+                                        style="padding: 2px 6px; font-size: 0.65rem;" 
+                                        onclick="copyText('{{ $prod->pid ?: 'PID-' . sprintf('%04d', $prod->id) }}', this)" 
+                                        title="Copy PID"
+                                    >
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 <div class="domain-name-cell">
@@ -128,8 +218,8 @@
                                     </button>
                                 </div>
                                 @if ($prod->description)
-                                    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        {{ $prod->description }}
+                                    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        {{ strip_tags($prod->description) }}
                                     </div>
                                 @endif
                             </td>
@@ -143,6 +233,30 @@
                                 <span class="badge-status b-ok" style="font-size: 0.72rem;">
                                     <i class="fa-solid fa-code-branch"></i> {{ $relCount }} Releases
                                 </span>
+                            </td>
+                            <td>
+                                {{-- Switch Published / Not --}}
+                                <div style="display: inline-flex; align-items: center; gap: 8px;">
+                                    <label class="cyber-switch" title="Toggle publication status">
+                                        <input 
+                                            type="checkbox" 
+                                            class="product-publish-switch" 
+                                            data-id="{{ $prod->id }}" 
+                                            data-name="{{ $prod->name }}"
+                                            data-url="{{ route('product.toggle-publish', $prod->id) }}"
+                                            {{ $prod->published ? 'checked' : '' }}
+                                        >
+                                        <span class="cyber-slider"></span>
+                                    </label>
+                                    <span 
+                                        id="pub-badge-{{ $prod->id }}" 
+                                        class="badge-status {{ $prod->published ? 'b-ok' : 'b-err' }}" 
+                                        style="font-size: 0.68rem; padding: 2px 6px; min-width: 72px; text-align: center;"
+                                    >
+                                        <span class="status-dot {{ $prod->published ? 'online' : 'offline' }}"></span>
+                                        <span class="pub-text">{{ $prod->published ? 'PUBLISHED' : 'DRAFT' }}</span>
+                                    </span>
+                                </div>
                             </td>
                             <td>
                                 @if ($prod->active)
@@ -220,9 +334,10 @@
 
             prodRows.forEach(row => {
                 const name = row.getAttribute('data-name') || '';
+                const pid = row.getAttribute('data-pid') || '';
                 const desc = row.getAttribute('data-desc') || '';
 
-                if (name.includes(query) || desc.includes(query)) {
+                if (name.includes(query) || pid.includes(query) || desc.includes(query)) {
                     row.style.display = '';
                     matches++;
                 } else {
@@ -243,5 +358,60 @@
             prodSearchInput.focus();
         });
     }
+
+    // Toggle Published Switch Ajax Handler
+    const publishSwitches = document.querySelectorAll('.product-publish-switch');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    publishSwitches.forEach(sw => {
+        sw.addEventListener('change', async function () {
+            const prodId = this.getAttribute('data-id');
+            const prodName = this.getAttribute('data-name') || 'Product';
+            const url = this.getAttribute('data-url');
+            const isChecked = this.checked;
+            const badge = document.getElementById('pub-badge-' + prodId);
+            const originalState = !isChecked;
+
+            this.disabled = true;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status);
+                }
+
+                const data = await response.json();
+                const newPublished = data.published ?? isChecked;
+
+                this.checked = newPublished;
+                if (badge) {
+                    if (newPublished) {
+                        badge.className = 'badge-status b-ok';
+                        badge.innerHTML = '<span class="status-dot online"></span><span class="pub-text">PUBLISHED</span>';
+                    } else {
+                        badge.className = 'badge-status b-err';
+                        badge.innerHTML = '<span class="status-dot offline"></span><span class="pub-text">DRAFT</span>';
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to toggle publish status:', err);
+                alert('Failed to update published status for ' + prodName + '. Please try again.');
+                this.checked = originalState;
+            } finally {
+                this.disabled = false;
+            }
+        });
+    });
 </script>
 @endpush
+

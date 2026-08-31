@@ -379,7 +379,7 @@ test('domain validation API increments hits on successful validation', function 
         'hits' => 5,
     ]);
 
-    $payload = base64_encode("api.shield.local|INVITE-TEST-KEY-123|{$product->id}");
+    $payload = base64_encode("api.shield.local|INVITE-TEST-KEY-123|{$product->pid}");
 
     $response = $this->postJson('/api/domain-validation', [
         'payload' => $payload,
@@ -429,7 +429,7 @@ test('domain validation API returns success false when domain quota limit is rea
     Domain::create(['user_id' => $user->id, 'product_id' => $product->id, 'domain' => 'dom2.quota.test']);
 
     // Attempting validation for an unregistered domain when quota limit is reached
-    $payload = base64_encode("unregistered.quota.test|QUOTA-TEST-KEY-999|{$product->id}");
+    $payload = base64_encode("unregistered.quota.test|QUOTA-TEST-KEY-999|{$product->pid}");
 
     $response = $this->postJson('/api/domain-validation', [
         'payload' => $payload,

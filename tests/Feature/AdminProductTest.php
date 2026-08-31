@@ -270,3 +270,59 @@ test('admin can update order domain quota', function () {
     $order->refresh();
     expect($order->domain_quota)->toBe(5);
 });
+
+test('admin can create product with explicit PID and published status', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $response = $this->actingAs($admin)->post('/admin/product', [
+        'name' => 'Zero-Day Hunter',
+        'pid' => 'PID-HUNTER-007',
+        'price' => 200000,
+        'description' => 'Autonomous scanner',
+        'active' => '1',
+        'published' => '1',
+    ]);
+
+    $response->assertRedirect('/admin/product');
+
+    $this->assertDatabaseHas('products', [
+        'name' => 'Zero-Day Hunter',
+        'pid' => 'PID-HUNTER-007',
+        'published' => true,
+        'active' => true,
+    ]);
+});
+
+test('admin can toggle product published status via patch endpoint', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $product = Product::create([
+        'name' => 'Dark Matter Exploit',
+        'pid' => 'PID-DARK-01',
+        'price' => 500000,
+        'published' => true,
+        'active' => true,
+    ]);
+
+    // Toggle to unpublished via JSON ajax
+    $ajaxResponse = $this->actingAs($admin)->patchJson("/admin/product/{$product->id}/toggle-publish");
+    $ajaxResponse->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'published' => false,
+        ]);
+
+    $product->refresh();
+    expect($product->published)->toBeFalse();
+
+    // Toggle back to published
+    $ajaxResponse2 = $this->actingAs($admin)->patchJson("/admin/product/{$product->id}/toggle-publish");
+    $ajaxResponse2->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'published' => true,
+        ]);
+
+    $product->refresh();
+    expect($product->published)->toBeTrue();
+});
+

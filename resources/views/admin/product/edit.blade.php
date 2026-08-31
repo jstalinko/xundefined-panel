@@ -68,6 +68,29 @@
                 </div>
 
                 <div class="cyber-form-group" style="margin-top: 16px;">
+                    <label class="cyber-label" for="pid">
+                        <i class="fa-solid fa-fingerprint"></i> PRODUCT IDENTIFIER (PID)
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input 
+                            type="text" 
+                            id="pid" 
+                            name="pid" 
+                            class="cyber-input" 
+                            placeholder="e.g. PID-SENTINEL-01" 
+                            value="{{ old('pid', $product->pid) }}"
+                            style="font-family: var(--font-mono); letter-spacing: 0.5px;"
+                        >
+                        <button type="button" class="cyber-btn cyber-btn-secondary" onclick="generateRandomPid()" title="Generate new random PID" style="white-space: nowrap; padding: 6px 12px; font-size: 0.78rem;">
+                            <i class="fa-solid fa-shuffle"></i> AUTO
+                        </button>
+                    </div>
+                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">
+                        Unique PID used in Domain Validation API and client licenses.
+                    </span>
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 16px;">
                     <label class="cyber-label" for="price">
                         <i class="fa-solid fa-money-bill"></i> PRICE (IDR) *
                     </label>
@@ -93,11 +116,26 @@
                     <div id="descriptionEditor" class="cyber-quill-editor" style="min-height: 140px;">{!! old('description', $product->description) !!}</div>
                 </div>
 
-                <div class="cyber-form-group" style="margin-top: 14px;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
-                        <input type="checkbox" name="active" value="1" {{ old('active', $product->active) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--red-primary);">
-                        <span>ACTIVE (Visible in Store for users to buy)</span>
-                    </label>
+                <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(14, 11, 16, 0.6); padding: 14px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--radius-sm);">
+                    <div class="cyber-form-group" style="margin: 0;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
+                            <input type="checkbox" name="published" value="1" {{ old('published', $product->published) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--status-online);">
+                            <div>
+                                <span style="font-weight: 700; color: #ffffff;">PUBLISHED</span>
+                                <span style="font-size: 0.74rem; color: var(--text-muted); display: block;">Catalog visibility and enabled for public/client domain verification</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="cyber-form-group" style="margin: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
+                            <input type="checkbox" name="active" value="1" {{ old('active', $product->active) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--red-primary);">
+                            <div>
+                                <span style="font-weight: 700; color: #ffffff;">ACTIVE</span>
+                                <span style="font-size: 0.74rem; color: var(--text-muted); display: block;">Available in Store for users to purchase</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -334,6 +372,18 @@
             return;
         }
         btn.closest('.release-row-card').remove();
+    }
+
+    function generateRandomPid() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = 'PID-';
+        for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const pidInput = document.getElementById('pid');
+        if (pidInput) {
+            pidInput.value = code;
+        }
     }
 </script>
 @endpush

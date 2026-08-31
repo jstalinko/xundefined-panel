@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Domain;
 use App\Models\Order;
+use App\Models\Product;
 
 class DomainController extends Controller
 {
@@ -18,12 +19,17 @@ class DomainController extends Controller
         $payload = $request->post('payload');
         if(!$payload) return response()->json(['success'=>false,'message' => 'Payload is required'], 400,[],JSON_PRETTY_PRINT);
         
-        // payload: domain.invite_key.product_id
+        // payload: domain.invite_key.pid.
         $extract = base64_decode($payload);
         $split = explode('|', $extract);
         $domain = $split[0] ?? null;
         $inviteKey = $split[1] ?? null;
-        $product_id = $split[2] ?? null;
+        $pid = $split[2] ?? null;
+
+        $product = Product::where('pid',$pid)->first();
+        if(!$product) return response()->json(['success'=>false,'message' => 'Invalid PID'], 400,[],JSON_PRETTY_PRINT);
+
+        $product_id = $product->id;
         
         $user = User::where('invite_key',$inviteKey)->first();
         if(!$user) return response()->json(['success'=>false,'message' => 'Invalid invite key'], 400,[],JSON_PRETTY_PRINT);
