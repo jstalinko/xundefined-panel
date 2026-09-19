@@ -1,7 +1,6 @@
-@extends('layouts.dashboard')
+@extends('layouts.payment')
 
-@section('title', 'Crypto Invoice #' . $order->invoice)
-@section('page-title', 'PAYMENT GATEWAY')
+@section('title', 'Pay Invoice #' . $order->invoice)
 
 @push('styles')
 <style>
@@ -10,10 +9,10 @@
         margin: 0 auto;
     }
     .pay-card {
-        background: rgba(15, 15, 20, 0.95);
+        background: rgba(14, 14, 18, 0.95);
         border: 1px solid rgba(255, 23, 68, 0.35);
         border-radius: var(--radius-md, 8px);
-        box-shadow: 0 0 30px rgba(255, 23, 68, 0.12), inset 0 0 20px rgba(0, 0, 0, 0.8);
+        box-shadow: 0 0 35px rgba(255, 23, 68, 0.12), inset 0 0 20px rgba(0, 0, 0, 0.8);
         position: relative;
         overflow: hidden;
         margin-bottom: 24px;
@@ -135,7 +134,7 @@
         color: #ffffff;
     }
     .pay-amount-highlight {
-        font-size: 1.3rem;
+        font-size: 1.25rem;
         color: #00ff66;
     }
     .status-hud-box {
@@ -183,21 +182,26 @@
 
 @section('content')
 <div class="payment-container">
-    {{-- Flash Messages --}}
+    {{-- Flash Status Message --}}
     @if (session('status'))
-        <div class="cyber-alert" role="alert" style="border-color: var(--status-online, #00ff66); background: rgba(0, 255, 102, 0.08); margin-bottom: 20px; padding: 12px 16px; border-left: 4px solid #00ff66;">
-            <i class="fa-solid fa-circle-check cyber-alert-icon" style="color: #00ff66; margin-right: 8px;"></i>
-            <span class="cyber-alert-msg" style="color: #ffffff;">{{ session('status') }}</span>
+        <div class="cyber-alert" role="alert" style="border-color: var(--status-online, #00ff66); background: rgba(0, 255, 102, 0.08); margin-bottom: 20px; padding: 12px 16px; border-left: 4px solid #00ff66; border-radius: 4px;">
+            <i class="fa-solid fa-circle-check" style="color: #00ff66; margin-right: 8px;"></i>
+            <span style="color: #ffffff; font-family: var(--font-mono, monospace); font-size: 0.85rem;">{{ session('status') }}</span>
         </div>
     @endif
 
-    {{-- Breadcrumb Navigation Bar --}}
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <a href="{{ route('admin.dashboard') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.8rem; text-decoration: none; color: #fff; background: rgba(255,255,255,0.08); border-radius: 4px;">
-            <i class="fa-solid fa-arrow-left"></i> BACK TO DASHBOARD
-        </a>
+    {{-- Top Action Bar --}}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="{{ auth()->check() ? route('admin.dashboard') : url('/') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.78rem; text-decoration: none; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;">
+                <i class="fa-solid fa-arrow-left"></i> {{ auth()->check() ? 'DASHBOARD' : 'HOME' }}
+            </a>
+            <a href="{{ route('dashboard.payment.status', $order->invoice) }}" class="cyber-btn cyber-btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.78rem; text-decoration: none; color: #ffaa00; background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.3); border-radius: 4px;">
+                <i class="fa-solid fa-chart-line"></i> STATUS TELEMETRY
+            </a>
+        </div>
         <div style="font-family: var(--font-mono, monospace); font-size: 0.8rem; color: #888888;">
-            TRANSACTION ID: <span style="color: #ffffff; font-weight: 700;">{{ $order->txn_id ?? 'PENDING' }}</span>
+            TXN ID: <span style="color: #ffffff; font-weight: 700;">{{ $order->txn_id ?? 'PENDING_CREATION' }}</span>
         </div>
     </div>
 
@@ -209,10 +213,10 @@
                 <span>CRYPTO GATEWAY // INVOICE #{{ $order->invoice }}</span>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span class="cyber-badge" style="background: rgba(255, 23, 68, 0.2); border: 1px solid var(--red-primary, #ff1744); color: #ffffff; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px;">
+                <span class="cyber-badge" style="background: rgba(255, 23, 68, 0.2); border: 1px solid var(--red-primary, #ff1744); color: #ffffff; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono, monospace); font-weight: 700;">
                     {{ $order->payment_currency ?? 'CRYPTO' }}
                 </span>
-                <span id="headerStatusBadge" class="cyber-badge" style="background: rgba(255, 170, 0, 0.15); border: 1px solid #ffaa00; color: #ffaa00; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px;">
+                <span id="headerStatusBadge" class="cyber-badge" style="background: rgba(255, 170, 0, 0.15); border: 1px solid #ffaa00; color: #ffaa00; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; font-family: var(--font-mono, monospace); font-weight: 700;">
                     <i class="fa-solid fa-clock"></i> <span id="statusBadgeText">{{ strtoupper($order->status) }}</span>
                 </span>
             </div>
@@ -242,7 +246,7 @@
             </div>
 
             <div class="pay-grid">
-                {{-- Left Column: QR Code --}}
+                {{-- Left Column: QR Code & Order Summary --}}
                 <div>
                     <div class="qr-box">
                         @php
@@ -262,7 +266,7 @@
                     </div>
 
                     {{-- Order Summary Info --}}
-                    <div style="margin-top: 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm, 4px); padding: 12px;">
+                    <div style="margin-top: 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm, 4px); padding: 12px; font-family: var(--font-mono, monospace);">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
                             <span style="color: #888888;">Item:</span>
                             <span style="color: #ffffff; font-weight: 600;">{{ $order->product ? $order->product->name : 'Balance Top-up' }}</span>
@@ -342,7 +346,7 @@
 
                     {{-- Action Button Bar --}}
                     <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
-                        <button type="button" id="refreshStatusBtn" class="cyber-btn" onclick="manualCheckStatus()" style="flex: 1; justify-content: center; background: var(--red-primary, #ff1744); color: #ffffff; border: none; padding: 12px 20px; font-weight: 700; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <button type="button" id="refreshStatusBtn" class="cyber-btn" onclick="manualCheckStatus()" style="flex: 1; justify-content: center; background: var(--red-primary, #ff1744); color: #ffffff; border: none; padding: 12px 20px; font-weight: 700; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono, monospace); font-size: 0.88rem; box-shadow: 0 0 16px rgba(255, 23, 68, 0.3);">
                             <i class="fa-solid fa-rotate" id="refreshSpinner"></i> CHECK ON-CHAIN STATUS
                         </button>
                     </div>
@@ -425,10 +429,16 @@
                 const statusBadgeText = document.getElementById('statusBadgeText');
                 const liveStatusMsg = document.getElementById('liveStatusMessage');
                 const liveDot = document.getElementById('liveDot');
+                const headerBadge = document.getElementById('headerStatusBadge');
 
                 if (data.is_completed) {
                     clearInterval(pollInterval);
                     if (statusBadgeText) statusBadgeText.textContent = 'COMPLETED';
+                    if (headerBadge) {
+                        headerBadge.style.borderColor = '#00ff66';
+                        headerBadge.style.background = 'rgba(0, 255, 102, 0.15)';
+                        headerBadge.style.color = '#00ff66';
+                    }
                     if (liveStatusMsg) liveStatusMsg.textContent = 'Payment Confirmed! Updating Account...';
                     if (liveDot) {
                         liveDot.style.background = '#00ff66';
@@ -436,10 +446,15 @@
                     }
 
                     setTimeout(() => {
-                        window.location.href = data.redirect_url || '{{ route('admin.dashboard') }}';
+                        window.location.href = `{{ route('dashboard.payment.status', $order->invoice) }}`;
                     }, 1500);
                 } else if (data.is_processing) {
                     if (statusBadgeText) statusBadgeText.textContent = 'CONFIRMING';
+                    if (headerBadge) {
+                        headerBadge.style.borderColor = '#48cae4';
+                        headerBadge.style.background = 'rgba(72, 202, 228, 0.15)';
+                        headerBadge.style.color = '#48cae4';
+                    }
                     if (liveStatusMsg) liveStatusMsg.textContent = 'Transaction Detected! Awaiting block confirmations...';
                     if (liveDot) {
                         liveDot.style.background = '#48cae4';
@@ -448,6 +463,11 @@
                 } else if (data.is_cancelled) {
                     clearInterval(pollInterval);
                     if (statusBadgeText) statusBadgeText.textContent = 'CANCELLED';
+                    if (headerBadge) {
+                        headerBadge.style.borderColor = 'var(--red-primary, #ff1744)';
+                        headerBadge.style.background = 'rgba(255, 23, 68, 0.15)';
+                        headerBadge.style.color = 'var(--red-primary, #ff1744)';
+                    }
                     if (liveStatusMsg) liveStatusMsg.textContent = 'Payment expired or cancelled.';
                     if (liveDot) {
                         liveDot.style.background = 'var(--red-primary, #ff1744)';

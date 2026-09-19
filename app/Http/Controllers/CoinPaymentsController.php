@@ -384,17 +384,20 @@ class CoinPaymentsController extends Controller
     }
 
     /**
-     * Check payment status endpoint for frontend polling or Telegram bot.
+     * Check payment status endpoint for frontend polling, Telegram bot, or standalone status display.
      */
-    public function checkStatus(Request $request, string $invoice): JsonResponse
+    public function checkStatus(Request $request, string $invoice): JsonResponse|View
     {
         $order = Order::with(['product', 'user'])->where('invoice', $invoice)->first();
 
         if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice order not found.',
-            ], 404);
+            if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice order not found.',
+                ], 404);
+            }
+            abort(404, 'Invoice order not found.');
         }
 
         // If requested with refresh=1, query live API or check simulate
@@ -438,6 +441,14 @@ class CoinPaymentsController extends Controller
         }
 
         $order->refresh();
+
+        // Return standalone HTML status view for direct browser requests
+        if (!$request->expectsJson() && !$request->wantsJson() && !$request->ajax()) {
+            return view('dashboard.payment-status', [
+                'order' => $order,
+                'user' => $order->user,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
