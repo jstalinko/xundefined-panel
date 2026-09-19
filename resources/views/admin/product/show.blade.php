@@ -105,10 +105,10 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>PRICE</th>
+                    <th>PRICE (USD)</th>
                     <td>
                         <span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 800; color: #00ff66;">
-                            Rp {{ number_format($product->price, 0, ',', '.') }}
+                            ${{ number_format($product->price, 2) }}
                         </span>
                     </td>
                 </tr>

@@ -34,7 +34,7 @@ return [
     | default_crypto is the default destination cryptocurrency (e.g. USDT.TRC20, LTC, BTC).
     |
     */
-    'default_currency' => env('COINPAYMENTS_DEFAULT_CURRENCY', 'IDR'),
+    'default_currency' => env('COINPAYMENTS_DEFAULT_CURRENCY', 'USD'),
     'default_crypto' => env('COINPAYMENTS_DEFAULT_CRYPTO', 'USDT.TRC20'),
 
     /*

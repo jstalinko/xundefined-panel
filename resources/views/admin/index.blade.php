@@ -103,7 +103,7 @@
         <div>
             <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">REVENUE</div>
             <div style="font-family: var(--font-mono); font-size: 1.45rem; font-weight: 800; color: #00ff66; margin-top: 4px; line-height: 1.2;">
-                Rp {{ number_format($stats['total_revenue'], 0, ',', '.') }}
+                ${{ number_format($stats['total_revenue'], 2) }}
             </div>
             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
                 <i class="fa-solid fa-circle-check" style="color: var(--status-online); font-size: 0.7rem;"></i> Completed Sales
@@ -148,7 +148,7 @@
                         <th>INVOICE</th>
                         <th>USER & EMAIL</th>
                         <th>PRODUCT</th>
-                        <th>AMOUNT</th>
+                        <th>AMOUNT (USD)</th>
                         <th>GATEWAY</th>
                         <th>STATUS</th>
                         <th>ORDER DATE</th>
@@ -193,7 +193,7 @@
                             </td>
                             <td>
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.88rem;">
-                                    Rp {{ number_format($ord->price, 0, ',', '.') }}
+                                    ${{ number_format($ord->price, 2) }}
                                 </span>
                             </td>
                             <td style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-secondary);">

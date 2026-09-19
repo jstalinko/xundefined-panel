@@ -99,7 +99,7 @@ class ProductController extends Controller
 
         $productData = [
             'name' => trim($validated['name']),
-            'price' => (int) $validated['price'],
+            'price' => (float) $validated['price'],
             'description' => $validated['description'] ?? null,
             'active' => $request->boolean('active', true),
             'published' => $request->boolean('published', true),
@@ -161,7 +161,7 @@ class ProductController extends Controller
 
         $productData = [
             'name' => trim($validated['name']),
-            'price' => (int) $validated['price'],
+            'price' => (float) $validated['price'],
             'description' => $validated['description'] ?? null,
             'active' => $request->boolean('active', false),
             'published' => $request->boolean('published', false),

@@ -27,7 +27,7 @@
             <span class="prompt-symbol">&gt;</span>
             <span class="prompt-cmd">list --invoices</span>
         </div>
-        <span class="terminal-badge">TOTAL SALES: Rp {{ number_format($stats['revenue'], 0, ',', '.') }}</span>
+        <span class="terminal-badge">TOTAL SALES: ${{ number_format($stats['revenue'], 2) }}</span>
     </div>
     <div class="terminal-banner-body">
         <div class="welcome-copy">
@@ -91,7 +91,7 @@
                         <th>BUYER & EMAIL</th>
                         <th>PRODUCT</th>
                         <th>DOMAIN QUOTA</th>
-                        <th>AMOUNT</th>
+                        <th>AMOUNT (USD)</th>
                         <th>GATEWAY</th>
                         <th>STATUS</th>
                         <th>DATE</th>
@@ -159,7 +159,7 @@
                             </td>
                             <td>
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.88rem;">
-                                    Rp {{ number_format($ord->price, 0, ',', '.') }}
+                                    ${{ number_format($ord->price, 2) }}
                                 </span>
                             </td>
                             <td style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-secondary);">

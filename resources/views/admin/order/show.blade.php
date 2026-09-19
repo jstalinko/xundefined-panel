@@ -57,8 +57,8 @@
                     <span style="color: #ffffff; font-weight: 700;">{{ $order->product->name ?? 'N/A' }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.84rem;">
-                    <span style="color: var(--text-muted);">Fiat Price:</span>
-                    <span style="color: #00ff66; font-family: var(--font-mono); font-weight: 700;">Rp {{ number_format($order->price, 0, ',', '.') }}</span>
+                    <span style="color: var(--text-muted);">Price (USD):</span>
+                    <span style="color: #00ff66; font-family: var(--font-mono); font-weight: 700;">${{ number_format($order->price, 2) }}</span>
                 </div>
             </div>
 

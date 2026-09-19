@@ -171,7 +171,7 @@
                         <th style="width: 45px;">#</th>
                         <th>PID</th>
                         <th>PRODUCT NAME</th>
-                        <th>PRICE</th>
+                        <th>PRICE (USD)</th>
                         <th>RELEASES</th>
                         <th>PUBLISHED</th>
                         <th>STATUS</th>
@@ -220,7 +220,7 @@
                             </td>
                             <td>
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.88rem;">
-                                    Rp {{ number_format($prod->price, 0, ',', '.') }}
+                                    ${{ number_format($prod->price, 2) }}
                                 </span>
                             </td>
                             <td>

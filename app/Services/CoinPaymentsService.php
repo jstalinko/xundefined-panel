@@ -28,7 +28,7 @@ class CoinPaymentsService
         $this->apiUrl = config('coinpayments.api_url', 'https://www.coinpayments.net/api.php');
         $this->timeout = (int) config('coinpayments.timeout', 30);
         $this->debugEmail = config('coinpayments.debug_email') ?? env('COINPAYMENTS_DEBUG_EMAIL', null);
-        $this->defaultCurrency = config('coinpayments.default_currency', 'IDR');
+        $this->defaultCurrency = config('coinpayments.default_currency', 'USD');
         $this->defaultCrypto = config('coinpayments.default_crypto', 'USDT.TRC20');
     }
 

@@ -92,7 +92,7 @@
 
                 <div class="cyber-form-group" style="margin-top: 16px;">
                     <label class="cyber-label" for="price">
-                        <i class="fa-solid fa-money-bill"></i> PRICE (IDR) *
+                        <i class="fa-solid fa-dollar-sign"></i> PRICE (USD) *
                     </label>
                     <input 
                         type="number" 
@@ -101,7 +101,7 @@
                         class="cyber-input" 
                         value="{{ old('price', $product->price) }}" 
                         min="0" 
-                        step="1000" 
+                        step="0.01" 
                         required
                     >
                 </div>

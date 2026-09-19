@@ -87,17 +87,17 @@
 
                 <div class="cyber-form-group" style="margin-top: 16px;">
                     <label class="cyber-label" for="price">
-                        <i class="fa-solid fa-money-bill"></i> PRICE (IDR) *
+                        <i class="fa-solid fa-dollar-sign"></i> PRICE (USD) *
                     </label>
                     <input 
                         type="number" 
                         id="price" 
                         name="price" 
                         class="cyber-input" 
-                        placeholder="e.g. 175000" 
+                        placeholder="e.g. 45.00" 
                         value="{{ old('price') }}" 
                         min="0" 
-                        step="1000" 
+                        step="0.01" 
                         required
                     >
                 </div>

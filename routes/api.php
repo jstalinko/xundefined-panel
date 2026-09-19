@@ -1,8 +1,12 @@
 <?php
 
 use App\Http\Controllers\CoinPaymentsController;
+use App\Http\Controllers\DomainController;
 use App\Http\Controllers\TelegramApiController;
 use Illuminate\Support\Facades\Route;
+
+
+Route::post('/domain-validation', DomainController::class)->name('api.domain-validation');
 
 /*
 |--------------------------------------------------------------------------

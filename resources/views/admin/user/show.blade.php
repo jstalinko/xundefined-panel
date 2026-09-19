@@ -139,7 +139,7 @@
                             </div>
                             <div style="text-align: right;">
                                 <span style="font-family: var(--font-mono); font-weight: 800; color: #00ff66; font-size: 0.84rem;">
-                                    Rp {{ number_format($ord->price, 0, ',', '.') }}
+                                    ${{ number_format($ord->price, 2) }}
                                 </span>
                                 <div>
                                     <span class="badge-status b-ok" style="font-size: 0.68rem;">{{ strtoupper($ord->status) }}</span>
