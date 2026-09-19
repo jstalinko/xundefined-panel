@@ -42,6 +42,16 @@ class PostController extends Controller
     }
 
     /**
+     * Display single post detail.
+     */
+    public function show(string $id)
+    {
+        $user = Auth::user();
+        $post = is_numeric($id) ? Post::findOrFail($id) : Post::where('slug', $id)->firstOrFail();
+        return view('admin.post.edit', compact('user', 'post'));
+    }
+
+    /**
      * Show the form for creating a new post.
      */
     public function create()

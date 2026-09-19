@@ -27,7 +27,7 @@ class Invitecode extends Model
         'expired_at' => 'datetime',
         'used_at' => 'datetime',
         'used' => 'boolean',
-        'products_id' => 'array'
+        'products_id' => 'array',
     ];
 
     /**

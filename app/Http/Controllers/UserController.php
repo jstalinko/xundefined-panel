@@ -24,7 +24,7 @@ class UserController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
                   ->orWhere('email', 'like', '%' . $search . '%')
-                  ->orWhere('invite_key', 'like', '%' . $search . '%');
+                  ->orWhere('account_key', 'like', '%' . $search . '%');
             });
         }
 
@@ -63,7 +63,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'integer', 'in:1,2'],
-            'invite_key' => ['nullable', 'string', 'max:64'],
+            'account_key' => ['nullable', 'string', 'max:64'],
         ], [
             'name.required' => 'User handle/name is mandatory.',
             'email.required' => 'Valid email address is mandatory.',
@@ -76,7 +76,7 @@ class UserController extends Controller
             'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
             'role' => (int) $validated['role'],
-            'invite_key' => !empty($validated['invite_key']) ? strtoupper(trim($validated['invite_key'])) : 'ADMIN-GENESIS',
+            'account_key' => !empty($validated['account_key']) ? strtoupper(trim($validated['account_key'])) : 'ADMIN-GENESIS',
         ]);
 
         return redirect()->route('user.index')
@@ -117,7 +117,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $id],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', 'integer', 'in:1,2'],
-            'invite_key' => ['nullable', 'string', 'max:64'],
+            'account_key' => ['nullable', 'string', 'max:64'],
         ], [
             'name.required' => 'User handle/name is mandatory.',
             'email.required' => 'Valid email address is mandatory.',
@@ -128,7 +128,7 @@ class UserController extends Controller
             'name' => trim($validated['name']),
             'email' => strtolower(trim($validated['email'])),
             'role' => (int) $validated['role'],
-            'invite_key' => !empty($validated['invite_key']) ? strtoupper(trim($validated['invite_key'])) : $targetUser->invite_key,
+            'account_key' => !empty($validated['account_key']) ? strtoupper(trim($validated['account_key'])) : $targetUser->account_key,
         ];
 
         if (!empty($validated['password'])) {

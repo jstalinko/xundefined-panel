@@ -65,11 +65,11 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>INVITE KEY</th>
+                    <th>ACCOUNT KEY</th>
                     <td>
-                        @if ($targetUser->invite_key)
+                        @if ($targetUser->account_key)
                             <code style="font-family: var(--font-mono); font-weight: 700; color: #ffd166; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.3); padding: 2px 6px; border-radius: 2px;">
-                                {{ $targetUser->invite_key }}
+                                {{ $targetUser->account_key }}
                             </code>
                         @else
                             <span style="color: var(--text-muted);">-</span>

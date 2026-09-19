@@ -105,16 +105,16 @@
                     </div>
 
                     <div class="cyber-form-group">
-                        <label class="cyber-label" for="invite_key">
-                            <i class="fa-solid fa-ticket"></i> INVITE KEY
+                        <label class="cyber-label" for="account_key">
+                            <i class="fa-solid fa-key"></i> ACCOUNT KEY
                         </label>
                         <input 
                             type="text" 
-                            id="invite_key" 
-                            name="invite_key" 
+                            id="account_key" 
+                            name="account_key" 
                             class="cyber-input" 
                             placeholder="XU-GENESIS" 
-                            value="{{ old('invite_key', 'XU-GENESIS') }}"
+                            value="{{ old('account_key', 'XU-GENESIS') }}"
                             style="text-transform: uppercase;"
                         >
                     </div>

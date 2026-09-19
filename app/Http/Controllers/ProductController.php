@@ -240,20 +240,28 @@ class ProductController extends Controller
      */
     protected function getStorageFiles(): array
     {
-        $privateDir = storage_path('app/private');
-        if (!is_dir($privateDir)) {
-            @mkdir($privateDir, 0755, true);
-        }
+        $directories = [
+            storage_path('app/private'),
+            storage_path('app/private/products'),
+        ];
 
         $files = [];
-        if (is_dir($privateDir)) {
-            $scanned = scandir($privateDir);
+        $seen = [];
+
+        foreach ($directories as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+                continue;
+            }
+
+            $scanned = scandir($dir);
             foreach ($scanned as $f) {
-                if ($f === '.' || $f === '..' || $f === '.gitignore') {
+                if ($f === '.' || $f === '..' || $f === '.gitignore' || isset($seen[$f])) {
                     continue;
                 }
-                $fullPath = $privateDir . DIRECTORY_SEPARATOR . $f;
+                $fullPath = $dir . DIRECTORY_SEPARATOR . $f;
                 if (is_file($fullPath)) {
+                    $seen[$f] = true;
                     $bytes = filesize($fullPath);
                     $humanSize = $bytes >= 1048576 
                         ? round($bytes / 1048576, 2) . ' MB'

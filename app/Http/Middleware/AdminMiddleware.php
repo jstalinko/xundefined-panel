@@ -15,9 +15,15 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || auth()->user()->role !== 1) {
-            return redirect('/');
+        if (!auth()->check()) {
+            return redirect()->route('login')->withErrors(['email' => 'Please log in to access the control panel.']);
         }
+
+        $user = auth()->user();
+        if (!$user->isAdmin()) {
+            return redirect('/')->withErrors(['error' => 'UNAUTHORIZED // Administrator clearance required.']);
+        }
+
         return $next($request);
     }
 }

@@ -3,7 +3,6 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoinPaymentsController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InviteCodeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PostController;
@@ -11,12 +10,12 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-// Landing route
+// Welcome / landing
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Guest Authentication Routes
+// Authentication routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
@@ -30,31 +29,28 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-// CoinPayments Public IPN Webhook Route
-Route::post('/coinpayments/ipn', [CoinPaymentsController::class, 'handleIpn'])->name('coinpayments.ipn.web');
+// Direct dashboard alias to xingzheng-panel
+Route::get('/dashboard', function () {
+    return redirect()->route('admin.dashboard');
+})->middleware('auth')->name('dashboard');
 
-Route::group(['prefix' => '/dashboard', 'middleware' => ['auth']], function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::put('/profile', [DashboardController::class, 'updateProfile'])->name('dashboard.profile.update');
-    Route::get('/notes', [DashboardController::class, 'notes'])->name('dashboard.notes');
-    Route::get('/notes/{slug}', [DashboardController::class, 'noteDetail'])->name('dashboard.notes.detail');
-    Route::get('/download', [DashboardController::class, 'download'])->name('dashboard.download');
-    Route::get('/download/file/{id}', [DashboardController::class, 'downloadFile'])->name('dashboard.download.file');
-    Route::get('/store', [DashboardController::class, 'store'])->name('dashboard.store');
-    Route::post('/store/purchase', [DashboardController::class, 'purchaseProduct'])->name('dashboard.store.purchase');
-    Route::get('/domain', [DashboardController::class, 'domain'])->name('dashboard.domain');
-    Route::post('/domain', [DashboardController::class, 'storeDomain'])->name('dashboard.domain.store');
-    Route::delete('/domain/{id}', [DashboardController::class, 'destroyDomain'])->name('dashboard.domain.destroy');
-
-    // CoinPayments Checkout & Payment Routes
-    Route::post('/coinpayments/create', [CoinPaymentsController::class, 'createTransaction'])->name('dashboard.coinpayments.create');
-    Route::get('/payment/{invoice}', [CoinPaymentsController::class, 'showPayment'])->name('dashboard.payment.show');
-    Route::get('/payment/{invoice}/status', [CoinPaymentsController::class, 'checkStatus'])->name('dashboard.payment.status');
-    Route::get('/coinpayments/currencies', [CoinPaymentsController::class, 'getCurrencies'])->name('dashboard.coinpayments.currencies');
+Route::get('/xingzheng-panel/login', function () {
+    return redirect()->route('login');
 });
 
-Route::group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], function () {
+Route::get('/notes/{slug}', [PostController::class, 'show'])->name('dashboard.notes.detail');
+
+// CoinPayments Gateway & Webhook
+Route::get('/payment/{invoice}', [CoinPaymentsController::class, 'showPayment'])->name('dashboard.payment.show');
+Route::get('/payment/{invoice}/status', [CoinPaymentsController::class, 'checkStatus'])->name('dashboard.payment.status');
+Route::post('/coinpayments/ipn', [CoinPaymentsController::class, 'handleIpn'])->name('coinpayments.ipn.web');
+Route::post('/coinpayments/create', [CoinPaymentsController::class, 'createTransaction'])->name('dashboard.coinpayments.create');
+Route::get('/coinpayments/currencies', [CoinPaymentsController::class, 'getCurrencies'])->name('dashboard.coinpayments.currencies');
+
+// Admin Panel with prefix /xingzheng-panel/
+Route::group(['prefix' => 'xingzheng-panel', 'middleware' => ['auth', 'admin']], function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('dashboard.profile.update');
     Route::patch('/product/{id}/toggle-publish', [ProductController::class, 'togglePublish'])->name('product.toggle-publish');
     Route::resource('/product', ProductController::class);
     Route::resource('/order', OrderController::class);

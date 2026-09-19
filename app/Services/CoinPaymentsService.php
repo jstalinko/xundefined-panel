@@ -206,6 +206,8 @@ class CoinPaymentsService
                 'USDC.TRC20' => ['name' => 'USD Coin (TRC-20)', 'icon' => 'fa-solid fa-dollar-sign', 'network' => 'TRON Network'],
                 'USDT.BEP20' => ['name' => 'Tether USDT (BEP-20)', 'icon' => 'fa-solid fa-dollar-sign', 'network' => 'BNB Smart Chain'],
                 'USDT.ERC20' => ['name' => 'Tether USDT (ERC-20)', 'icon' => 'fa-solid fa-dollar-sign', 'network' => 'Ethereum Network'],
+                'USDT.SOL'   => ['name' => 'Tether USDT (SOL)', 'icon' => 'fa-solid fa-dollar-sign', 'network' => 'Solana Network'],
+                'LTCT'       => ['name' => 'Litecoin Testnet (Demo)', 'icon' => 'fa-solid fa-coins', 'network' => 'Testnet (Demo Only)'],
             ];
 
             foreach ($rates as $symbol => $data) {

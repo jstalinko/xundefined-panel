@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Domain;
 use App\Models\Order;
 use App\Models\Post;
@@ -9,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
@@ -41,5 +43,48 @@ class AdminController extends Controller
             ->get();
 
         return view('admin.index', compact('user', 'stats', 'latestOrders', 'allDomains'));
+    }
+
+    /**
+     * Update admin user profile parameters (Name, Password).
+     */
+    public function updateProfile(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $rules = [
+            'name' => ['required', 'string', 'max:255'],
+        ];
+
+        if ($request->filled('password')) {
+            $rules['current_password'] = ['required', 'string', function ($attribute, $value, $fail) use ($user) {
+                if (!Hash::check($value, $user->password)) {
+                    $fail('Current password does not match system records.');
+                }
+            }];
+            $rules['password'] = ['required', 'string', 'min:8', 'confirmed'];
+        }
+
+        $validated = $request->validate($rules, [
+            'name.required' => 'Operative name is required.',
+            'current_password.required' => 'Current password is required to set a new password.',
+            'password.min' => 'New password must be at least 8 characters long.',
+            'password.confirmed' => 'New password confirmation does not match.',
+        ]);
+
+        $user->name = $validated['name'];
+        if ($request->filled('password')) {
+            $user->password = Hash::make($validated['password']);
+        }
+        $user->save();
+
+        ActivityLog::create([
+            'type' => 'account',
+            'description' => "Admin profile updated (Name: {$user->name}" . ($request->filled('password') ? ", Password updated" : "") . ")",
+            'user_id' => $user->id,
+        ]);
+
+        return redirect()->back()->with('status', 'PROFILE UPDATED // Security profile parameters saved successfully.');
     }
 }

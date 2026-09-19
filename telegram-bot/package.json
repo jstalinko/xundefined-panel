@@ -1,0 +1,30 @@
+{
+  "name": "xundefined-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for selling digital products (script websites) integrated with Laravel backend",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "node test-integration.js && node test-handlers.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "telegraf",
+    "laravel",
+    "digital-products",
+    "website-scripts"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

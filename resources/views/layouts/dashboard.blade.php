@@ -33,13 +33,13 @@
         <aside class="cyber-sidebar" id="cyberSidebar">
             <!-- Sidebar Brand Header -->
             <div class="cyber-sidebar-header">
-                <a href="{{ route('dashboard') }}" class="cyber-sidebar-brand">
+                <a href="{{ route('admin.dashboard') }}" class="cyber-sidebar-brand">
                     <div class="cyber-brand-icon">
                         <span>X/U</span>
                     </div>
                     <div class="cyber-brand-text">
                         <span class="cyber-brand-name">XUNDEFINED</span>
-                        <span class="cyber-brand-tag">XingZheng Labs</span>
+                        <span class="cyber-brand-tag">XingZheng Panel</span>
                     </div>
                 </a>
                 <button type="button" class="cyber-sidebar-close" id="sidebarCloseBtn" aria-label="Close sidebar">
@@ -48,15 +48,19 @@
             </div>
 
             <!-- Operative Profile Card -->
+            @php
+                $currentUser = auth()->user() ?? ($user ?? null);
+            @endphp
             <div class="cyber-sidebar-profile">
                 <div class="profile-identity-row">
                     <div class="profile-avatar-box">
-                        <span>{{ strtoupper(substr(auth()->user()->name ?? 'O', 0, 1)) }}</span>
+                        <span>{{ strtoupper(substr($currentUser?->name ?? 'O', 0, 1)) }}</span>
                         <span class="profile-status-indicator" title="Unit Online"></span>
                     </div>
                     <div class="profile-info" style="flex: 1; min-width: 0;">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                            <div class="profile-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</div>
+                            <div class="profile-name" title="{{ $currentUser?->name ?? 'Operative' }}">{{ $currentUser?->name ?? 'Operative' }}</div>
+                            @if(auth()->check())
                             <button 
                                 type="button" 
                                 class="cyber-btn cyber-btn-xs" 
@@ -66,101 +70,65 @@
                             >
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
+                            @endif
                         </div>
                         <div class="profile-role-badge">
                             <i class="fa-solid fa-shield-halved"></i>
-                            <span>{{ auth()->user()->role == 1 ? 'Admin' : 'Member' }}</span>
+                            <span>{{ $currentUser?->role_name ?? ($currentUser?->isAdmin() ? 'Admin' : 'Operative') }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="profile-meta-row">
-                    <span class="profile-key-label">INVITE CODE:</span>
-                    <span class="profile-key-val">{{ auth()->user()->invite_key ?? 'GENESIS' }}</span>
+                    <span class="profile-key-label">ACCOUNT KEY:</span>
+                    <span class="profile-key-val">{{ $currentUser?->account_key ?? 'GENESIS' }}</span>
                 </div>
             </div>
 
             <!-- Navigation Links -->
             <nav class="cyber-sidebar-nav">
-                <div class="nav-section-title">MAIN MENU</div>
-                
+                <div class="nav-section-title">CONTROL PANEL</div>
+
                 <div class="cyber-nav-item">
-                    <a href="{{ route('dashboard') }}" class="cyber-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                        <i class="fa-solid fa-home"></i>
-                        <span>xDashboard</span>
+                    <a href="{{ route('admin.dashboard') }}" class="cyber-nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-solar-panel"></i>
+                        <span>Dashboard</span>
                     </a>
                 </div>
 
                 <div class="cyber-nav-item">
-                    <a href="{{ route('dashboard.download') }}" class="cyber-nav-link {{ request()->routeIs('dashboard.download*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-download"></i>
-                        <span>xDownload</span>
+                    <a href="{{ route('product.index') }}" class="cyber-nav-link {{ request()->routeIs('product*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>Products</span>
                     </a>
                 </div>
 
                 <div class="cyber-nav-item">
-                    <a href="{{ route('dashboard.domain') }}" class="cyber-nav-link {{ request()->routeIs('dashboard.domain*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-globe"></i>
-                        <span>xDomain</span>
+                    <a href="{{ route('order.index') }}" class="cyber-nav-link {{ request()->routeIs('order*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span>Orders</span>
                     </a>
                 </div>
 
                 <div class="cyber-nav-item">
-                    <a href="{{ route('dashboard.store') }}" class="cyber-nav-link {{ request()->routeIs('dashboard.store*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-shopping-cart"></i>
-                        <span>xStore</span>
+                    <a href="{{ route('post.index') }}" class="cyber-nav-link {{ request()->routeIs('post*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-newspaper"></i>
+                        <span>Posts / News</span>
                     </a>
                 </div>
+
                 <div class="cyber-nav-item">
-                    <a href="{{ route('dashboard.notes') }}" class="cyber-nav-link {{ request()->routeIs('dashboard.notes*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-note-sticky"></i>
-                        <span>xNotes</span>
+                    <a href="{{ route('invitecode.index') }}" class="cyber-nav-link {{ request()->routeIs('invitecode*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-key"></i>
+                        <span>InviteCode</span>
                     </a>
                 </div>
 
-                @if (auth()->check() && (int) auth()->user()->role === 1)
-                    <div class="nav-section-title">ADMINISTRATION</div>
-
-                    <div class="cyber-nav-item">
-                        <a href="{{ route('admin.dashboard') }}" class="cyber-nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-solar-panel"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </div>
-
-                    <div class="cyber-nav-item">
-                        <a href="{{ route('product.index') }}" class="cyber-nav-link {{ request()->routeIs('product*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-box-archive"></i>
-                            <span>Products</span>
-                        </a>
-                    </div>
-
-                    <div class="cyber-nav-item">
-                        <a href="{{ route('order.index') }}" class="cyber-nav-link {{ request()->routeIs('order*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-cart-shopping"></i>
-                            <span>Orders</span>
-                        </a>
-                    </div>
-
-                    <div class="cyber-nav-item">
-                        <a href="{{ route('post.index') }}" class="cyber-nav-link {{ request()->routeIs('post*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-newspaper"></i>
-                            <span>Posts</span>
-                        </a>
-                    </div>
-
-                    <div class="cyber-nav-item">
-                        <a href="{{ route('invitecode.index') }}" class="cyber-nav-link {{ request()->routeIs('invitecode*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-key"></i>
-                            <span>InviteCode</span>
-                        </a>
-                    </div>
-                     <div class="cyber-nav-item">
-                        <a href="{{ route('user.index') }}" class="cyber-nav-link {{ request()->routeIs('user*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-users"></i>
-                            <span>Users</span>
-                        </a>
-                    </div>
-                @endif
+                <div class="cyber-nav-item">
+                    <a href="{{ route('user.index') }}" class="cyber-nav-link {{ request()->routeIs('user*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Users</span>
+                    </a>
+                </div>
 
                 <div class="nav-section-title">OUR LINKS</div>
 
@@ -280,7 +248,7 @@
                             id="profileNameInput" 
                             name="name" 
                             class="cyber-input" 
-                            value="{{ auth()->user()->name }}"
+                            value="{{ auth()->user()?->name ?? '' }}"
                             required
                         >
                     </div>

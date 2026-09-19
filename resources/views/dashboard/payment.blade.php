@@ -165,19 +165,6 @@
         70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(255, 170, 0, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 170, 0, 0); }
     }
-    .countdown-bar-wrap {
-        background: rgba(255, 255, 255, 0.08);
-        height: 6px;
-        border-radius: 3px;
-        overflow: hidden;
-        margin-top: 8px;
-    }
-    .countdown-bar-fill {
-        background: linear-gradient(90deg, #00ff66, var(--red-primary, #ff1744));
-        height: 100%;
-        width: 100%;
-        transition: width 1s linear;
-    }
     .cyber-notice-alert {
         background: rgba(255, 170, 0, 0.08);
         border: 1px solid rgba(255, 170, 0, 0.3);
@@ -198,21 +185,18 @@
 <div class="payment-container">
     {{-- Flash Messages --}}
     @if (session('status'))
-        <div class="cyber-alert" role="alert" style="border-color: var(--status-online); background: rgba(0, 255, 102, 0.08); margin-bottom: 20px;">
-            <i class="fa-solid fa-circle-check cyber-alert-icon" style="color: var(--status-online);"></i>
-            <div class="cyber-alert-content">
-                <span class="cyber-alert-title" style="color: var(--status-online);">GATEWAY NOTIFICATION</span>
-                <span class="cyber-alert-msg">{{ session('status') }}</span>
-            </div>
+        <div class="cyber-alert" role="alert" style="border-color: var(--status-online, #00ff66); background: rgba(0, 255, 102, 0.08); margin-bottom: 20px; padding: 12px 16px; border-left: 4px solid #00ff66;">
+            <i class="fa-solid fa-circle-check cyber-alert-icon" style="color: #00ff66; margin-right: 8px;"></i>
+            <span class="cyber-alert-msg" style="color: #ffffff;">{{ session('status') }}</span>
         </div>
     @endif
 
     {{-- Breadcrumb Navigation Bar --}}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <a href="{{ route('dashboard.store') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
-            <i class="fa-solid fa-arrow-left"></i> BACK TO STORE
+        <a href="{{ route('admin.dashboard') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.8rem; text-decoration: none; color: #fff; background: rgba(255,255,255,0.08); border-radius: 4px;">
+            <i class="fa-solid fa-arrow-left"></i> BACK TO DASHBOARD
         </a>
-        <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">
+        <div style="font-family: var(--font-mono, monospace); font-size: 0.8rem; color: #888888;">
             TRANSACTION ID: <span style="color: #ffffff; font-weight: 700;">{{ $order->txn_id ?? 'PENDING' }}</span>
         </div>
     </div>
@@ -221,14 +205,14 @@
     <div class="pay-card">
         <div class="pay-card-header">
             <div class="pay-card-title">
-                <i class="fa-solid fa-satellite-dish" style="color: var(--red-primary);"></i>
+                <i class="fa-solid fa-satellite-dish" style="color: var(--red-primary, #ff1744);"></i>
                 <span>CRYPTO GATEWAY // INVOICE #{{ $order->invoice }}</span>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span class="cyber-badge" style="background: rgba(255, 23, 68, 0.2); border: 1px solid var(--red-primary); color: #ffffff; padding: 4px 10px; font-size: 0.75rem;">
+                <span class="cyber-badge" style="background: rgba(255, 23, 68, 0.2); border: 1px solid var(--red-primary, #ff1744); color: #ffffff; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px;">
                     {{ $order->payment_currency ?? 'CRYPTO' }}
                 </span>
-                <span id="headerStatusBadge" class="cyber-badge" style="background: rgba(255, 170, 0, 0.15); border: 1px solid #ffaa00; color: #ffaa00; padding: 4px 10px; font-size: 0.75rem;">
+                <span id="headerStatusBadge" class="cyber-badge" style="background: rgba(255, 170, 0, 0.15); border: 1px solid #ffaa00; color: #ffaa00; padding: 4px 10px; font-size: 0.75rem; border-radius: 4px;">
                     <i class="fa-solid fa-clock"></i> <span id="statusBadgeText">{{ strtoupper($order->status) }}</span>
                 </span>
             </div>
@@ -238,20 +222,20 @@
             {{-- Status and Expiration HUD --}}
             <div class="status-hud-box">
                 <div>
-                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">
+                    <div style="font-family: var(--font-mono, monospace); font-size: 0.72rem; color: #888888; text-transform: uppercase;">
                         PAYMENT TELEMETRY
                     </div>
-                    <div style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; color: #ffffff; margin-top: 3px; display: flex; align-items: center;">
+                    <div style="font-family: var(--font-mono, monospace); font-size: 0.95rem; font-weight: 700; color: #ffffff; margin-top: 3px; display: flex; align-items: center;">
                         <span id="liveDot" class="live-pulse"></span>
                         <span id="liveStatusMessage">Awaiting On-Chain Transfer...</span>
                     </div>
                 </div>
 
                 <div style="text-align: right;">
-                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">
+                    <div style="font-family: var(--font-mono, monospace); font-size: 0.72rem; color: #888888; text-transform: uppercase;">
                         TIME REMAINING
                     </div>
-                    <div style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 800; color: #ffaa00;" id="countdownClock">
+                    <div style="font-family: var(--font-mono, monospace); font-size: 1.1rem; font-weight: 800; color: #ffaa00;" id="countdownClock">
                         --:--
                     </div>
                 </div>
@@ -271,24 +255,24 @@
                                 $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($qrData);
                             }
                         @endphp
-                        <img src="{{ $qrUrl }}" alt=" Crypto QR Code" class="qr-img" id="qrImage">
+                        <img src="{{ $qrUrl }}" alt="Crypto QR Code" class="qr-img" id="qrImage">
                         <div class="qr-caption">
                             <i class="fa-solid fa-qrcode"></i> SCAN WITH WALLET APP
                         </div>
                     </div>
 
                     {{-- Order Summary Info --}}
-                    <div style="margin-top: 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 12px;">
+                    <div style="margin-top: 16px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm, 4px); padding: 12px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Product:</span>
-                            <span style="color: #ffffff; font-weight: 600;">{{ $order->product->name ?? 'Software Package' }}</span>
+                            <span style="color: #888888;">Item:</span>
+                            <span style="color: #ffffff; font-weight: 600;">{{ $order->product ? $order->product->name : 'Balance Top-up' }}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Fiat Price:</span>
-                            <span style="color: #ffffff;">{{ number_format($order->price, 0, ',', '.') }} IDR</span>
+                            <span style="color: #888888;">Amount:</span>
+                            <span style="color: #ffffff;">${{ number_format($order->price ?? $order->amount, 2) }} USD</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                            <span style="color: var(--text-muted);">Required Confirms:</span>
+                            <span style="color: #888888;">Required Confirms:</span>
                             <span style="color: #48cae4; font-weight: 700;">{{ $order->payment_confirms_needed ?? 1 }} Block(s)</span>
                         </div>
                     </div>
@@ -318,7 +302,7 @@
                     {{-- Crypto Deposit Address --}}
                     <div class="pay-detail-group">
                         <label class="pay-label">
-                            <i class="fa-solid fa-wallet" style="color: var(--red-primary);"></i> RECEIVING ADDRESS ({{ $order->payment_currency }})
+                            <i class="fa-solid fa-wallet" style="color: var(--red-primary, #ff1744);"></i> RECEIVING ADDRESS ({{ $order->payment_currency }})
                         </label>
                         <div class="pay-copy-box">
                             <input 
@@ -358,7 +342,7 @@
 
                     {{-- Action Button Bar --}}
                     <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
-                        <button type="button" id="refreshStatusBtn" class="cyber-btn cyber-btn-primary" onclick="manualCheckStatus()" style="flex: 1; justify-content: center;">
+                        <button type="button" id="refreshStatusBtn" class="cyber-btn" onclick="manualCheckStatus()" style="flex: 1; justify-content: center; background: var(--red-primary, #ff1744); color: #ffffff; border: none; padding: 12px 20px; font-weight: 700; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid fa-rotate" id="refreshSpinner"></i> CHECK ON-CHAIN STATUS
                         </button>
                     </div>
@@ -367,7 +351,7 @@
                     <div class="cyber-notice-alert">
                         <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; margin-top: 2px;"></i>
                         <div>
-                            <strong>IMPORTANT:</strong> Send the exact cryptocurrency amount specified above. Sending from multiple transactions or using incompatible networks may cause delays. Once confirmed on the blockchain, this page will automatically redirect and activate your module license.
+                            <strong>IMPORTANT:</strong> Send the exact cryptocurrency amount specified above. Once confirmed on the blockchain, your account balance or product license will activate automatically.
                         </div>
                     </div>
                 </div>
@@ -379,11 +363,9 @@
 
 @push('scripts')
 <script>
-    // Copy input value helper
     function copyInputValue(inputId, btn) {
         const input = document.getElementById(inputId);
         if (!input) return;
-        
         input.select();
         input.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(input.value).then(() => {
@@ -399,7 +381,6 @@
         });
     }
 
-    // Expiration Countdown Timer
     let remainingSeconds = {{ (int) $remainingSeconds }};
     const countdownClock = document.getElementById('countdownClock');
 
@@ -407,7 +388,7 @@
         if (!countdownClock) return;
         if (remainingSeconds <= 0) {
             countdownClock.textContent = 'EXPIRED / TIMEOUT';
-            countdownClock.style.color = 'var(--red-primary)';
+            countdownClock.style.color = 'var(--red-primary, #ff1744)';
             return;
         }
 
@@ -420,7 +401,6 @@
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    // Auto-polling status checker
     const invoiceNumber = '{{ $order->invoice }}';
     let pollInterval = null;
     let isChecking = false;
@@ -449,14 +429,14 @@
                 if (data.is_completed) {
                     clearInterval(pollInterval);
                     if (statusBadgeText) statusBadgeText.textContent = 'COMPLETED';
-                    if (liveStatusMsg) liveStatusMsg.textContent = 'Payment Confirmed! Unlocking Payload...';
+                    if (liveStatusMsg) liveStatusMsg.textContent = 'Payment Confirmed! Updating Account...';
                     if (liveDot) {
                         liveDot.style.background = '#00ff66';
                         liveDot.style.boxShadow = '0 0 10px #00ff66';
                     }
 
                     setTimeout(() => {
-                        window.location.href = data.redirect_url || '{{ route('dashboard.download') }}';
+                        window.location.href = data.redirect_url || '{{ route('admin.dashboard') }}';
                     }, 1500);
                 } else if (data.is_processing) {
                     if (statusBadgeText) statusBadgeText.textContent = 'CONFIRMING';
@@ -470,8 +450,8 @@
                     if (statusBadgeText) statusBadgeText.textContent = 'CANCELLED';
                     if (liveStatusMsg) liveStatusMsg.textContent = 'Payment expired or cancelled.';
                     if (liveDot) {
-                        liveDot.style.background = 'var(--red-primary)';
-                        liveDot.style.boxShadow = '0 0 10px var(--red-primary)';
+                        liveDot.style.background = 'var(--red-primary, #ff1744)';
+                        liveDot.style.boxShadow = '0 0 10px var(--red-primary, #ff1744)';
                     }
                 }
             }
@@ -496,7 +476,6 @@
         }, 1000);
     }
 
-    // Start polling every 10 seconds
     pollInterval = setInterval(() => checkOrderStatus(false), 10000);
 </script>
 @endpush

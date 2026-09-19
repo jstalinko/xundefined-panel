@@ -163,7 +163,7 @@
                         <th style="width: 50px;">#</th>
                         <th>OPERATIVE IDENTITY</th>
                         <th>CLEARANCE ROLE</th>
-                        <th>INVITE KEY</th>
+                        <th>ACCOUNT KEY</th>
                         <th>DOMAINS</th>
                         <th>ORDERS</th>
                         <th>JOINED DATE</th>
@@ -172,7 +172,7 @@
                 </thead>
                 <tbody>
                     @foreach ($users as $index => $u)
-                        <tr class="user-row-item" data-name="{{ strtolower($u->name) }}" data-email="{{ strtolower($u->email) }}" data-invite="{{ strtolower($u->invite_key ?? '') }}">
+                        <tr class="user-row-item" data-name="{{ strtolower($u->name) }}" data-email="{{ strtolower($u->email) }}" data-account="{{ strtolower($u->account_key ?? '') }}" data-invite="{{ strtolower($u->account_key ?? '') }}">
                             <td style="color: var(--text-muted); font-weight: 700;">
                                 {{ sprintf('%02d', $index + 1) }}
                             </td>
@@ -208,9 +208,9 @@
                                 @endif
                             </td>
                             <td>
-                                @if ($u->invite_key)
+                                @if ($u->account_key)
                                     <code style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: #ffd166; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.3); padding: 2px 6px; border-radius: 2px;">
-                                        {{ $u->invite_key }}
+                                        {{ $u->account_key }}
                                     </code>
                                 @else
                                     <span style="color: var(--text-muted); font-size: 0.74rem;">-</span>
@@ -355,15 +355,15 @@
                         </select>
                     </div>
 
-                    {{-- Invite Key --}}
+                    {{-- Account Key --}}
                     <div class="cyber-form-group">
                         <label class="cyber-label" for="modalUserInvite">
-                            <i class="fa-solid fa-ticket"></i> INVITE KEY
+                            <i class="fa-solid fa-key"></i> ACCOUNT KEY
                         </label>
                         <input 
                             type="text" 
                             id="modalUserInvite" 
-                            name="invite_key" 
+                            name="account_key" 
                             class="cyber-input" 
                             placeholder="XU-XXXX-XXXX"
                             style="text-transform: uppercase;"
@@ -405,9 +405,9 @@
             userRows.forEach(row => {
                 const name = row.getAttribute('data-name') || '';
                 const email = row.getAttribute('data-email') || '';
-                const invite = row.getAttribute('data-invite') || '';
+                const account = row.getAttribute('data-account') || row.getAttribute('data-invite') || '';
 
-                if (name.includes(query) || email.includes(query) || invite.includes(query)) {
+                if (name.includes(query) || email.includes(query) || account.includes(query)) {
                     row.style.display = '';
                     matches++;
                 } else {
@@ -480,7 +480,7 @@
         userPassLabel.textContent = 'CHANGE PASSCODE (OPTIONAL)';
         userPassHint.style.display = 'block';
         userRoleInput.value = data.role !== undefined ? data.role : 2;
-        userInviteInput.value = data.invite_key || '';
+        userInviteInput.value = data.account_key || data.invite_key || '';
 
         userBackdrop.classList.add('active');
         document.body.style.overflow = 'hidden';

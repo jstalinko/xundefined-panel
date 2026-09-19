@@ -132,7 +132,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => User::ROLE_MEMBER,
-            'invite_key' => $inviteCodeStr,
+            'account_key' => $inviteCodeStr,
         ]);
 
         $dbInvite->markAsUsed($user);

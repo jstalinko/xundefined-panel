@@ -13,6 +13,11 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public const ROLE_BANNED = 0;
+    public const ROLE_ADMIN = 1;
+    public const ROLE_MEMBER = 2;
+    public const ROLE_INACTIVE = 3;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -22,52 +27,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'telegram_id',
+        'telegram_username',
+        'balance',
         'role',
-        'invite_key',
+        'account_key',
     ];
-
-    /**
-     * Role definitions:
-     * 0 = Banned
-     * 1 = Admin
-     * 2 = Member
-     * 3 = Inactive
-     */
-    public const ROLE_BANNED = 0;
-    public const ROLE_ADMIN = 1;
-    public const ROLE_MEMBER = 2;
-    public const ROLE_INACTIVE = 3;
-
-    public function isAdmin(): bool
-    {
-        return (int) $this->role === self::ROLE_ADMIN;
-    }
-
-    public function isMember(): bool
-    {
-        return (int) $this->role === self::ROLE_MEMBER;
-    }
-
-    public function isBanned(): bool
-    {
-        return (int) $this->role === self::ROLE_BANNED;
-    }
-
-    public function isInactive(): bool
-    {
-        return (int) $this->role === self::ROLE_INACTIVE;
-    }
-
-    public function getRoleNameAttribute(): string
-    {
-        return match ((int) $this->role) {
-            self::ROLE_ADMIN => 'System Admin',
-            self::ROLE_MEMBER => 'Cyber Operative',
-            self::ROLE_BANNED => 'Terminated',
-            self::ROLE_INACTIVE => 'Pending Clearance',
-            default => 'Unknown Unit',
-        };
-    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -80,22 +45,6 @@ class User extends Authenticatable
     ];
 
     /**
-     * Relationship to domains registered by user.
-     */
-    public function domains()
-    {
-        return $this->hasMany(Domain::class);
-    }
-
-    /**
-     * Relationship to orders placed by user.
-     */
-    public function orders()
-    {
-        return $this->hasMany(Order::class);
-    }
-
-    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -105,7 +54,66 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => 'integer',
+            'balance' => 'decimal:2',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin' || (is_numeric($this->role) && (int) $this->role === self::ROLE_ADMIN);
+    }
+
+    public function isMember(): bool
+    {
+        return $this->role === 'user' || (is_numeric($this->role) && (int) $this->role === self::ROLE_MEMBER);
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->role === 'banned' || (is_numeric($this->role) && (int) $this->role === self::ROLE_BANNED);
+    }
+
+    public function isInactive(): bool
+    {
+        return $this->role === 'inactive' || (is_numeric($this->role) && (int) $this->role === self::ROLE_INACTIVE);
+    }
+
+    public function getRoleNameAttribute(): string
+    {
+        if ($this->isAdmin()) {
+            return 'System Admin';
+        }
+        if ($this->isBanned()) {
+            return 'Terminated';
+        }
+        if ($this->isInactive()) {
+            return 'Pending Clearance';
+        }
+        return 'Cyber Operative';
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function domains()
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(Activity::class)->latest();
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class)->latest();
+    }
+
+    public function usedInviteCodes()
+    {
+        return $this->hasMany(Invitecode::class, 'used_by_user_id');
     }
 }

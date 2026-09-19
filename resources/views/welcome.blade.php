@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="Gk61O4f08kiC7uVeMf2pfMWlpBDCRLP4zDhvc97b">
 
     <title>XUNDEFINED PROJECT // By XingZhang Labs</title>
 
@@ -16,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Xundefined Cyber Design System -->
-    <link rel="stylesheet" href="{{ asset('app.css') }}">
+    <link rel="stylesheet" href="{{ asset('app.css') }}?ver={{ date('dmY') }}">
 
     <style>
         body.welcome-cyber-bg {
@@ -197,24 +198,15 @@
         </div>
 
         <div class="welcome-nav-actions">
-            @auth
-                <a href="{{ route('dashboard') }}" class="welcome-enter-btn">
-                    <i class="fa-solid fa-gauge-high"></i>
-                    <span>ENTER DASHBOARD</span>
-                </a>
-            @else
-                <a href="{{ route('login') }}" class="welcome-enter-btn">
+                            <a href="login" class="welcome-enter-btn">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>LOGIN</span>
                 </a>
-                @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="welcome-secondary-btn">
+                                    <a href="register" class="welcome-secondary-btn">
                         <i class="fa-solid fa-user-plus"></i>
                         <span>REGISTER</span>
                     </a>
-                @endif
-            @endauth
-        </div>
+                                    </div>
     </main>
 </body>
 </html>
