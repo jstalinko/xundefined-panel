@@ -39,9 +39,9 @@ class DatabaseSeeder extends Seeder
         // 2. Seed Products Catalog
         $this->call(ProductSeeder::class);
 
-        $p1 = Product::where('slug', 'x-sentinel-threat-bot')->first() ?? Product::first();
-        $p2 = Product::where('slug', 'ghost-recon-framework')->first();
-        $p3 = Product::where('slug', 'cipher-vault-kernel-v3')->first();
+        $p1 = Product::where('slug', 'sc-amazon')->first() ?? Product::first();
+        $p2 = Product::where('slug', 'sc-microsoft-non-card')->first();
+        $p3 = Product::where('slug', 'sc-trustwallet-get-phrase')->first();
 
         // 3. Seed Sample Order
         if ($p1 && Order::where('user_id', $user->id)->where('product_id', $p1->id)->count() === 0) {

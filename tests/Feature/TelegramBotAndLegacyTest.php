@@ -260,12 +260,12 @@ class TelegramBotAndLegacyTest extends TestCase
         $this->assertFalse(Schema::hasColumn('orders', 'license_key'));
 
         // 2. Product
-        $sentinel = Product::where('slug', 'x-sentinel-threat-bot')->first();
-        $this->assertNotNull($sentinel);
-        $this->assertNotEmpty($sentinel->pid);
-        $this->assertIsArray($sentinel->contents);
-        $this->assertTrue($sentinel->active);
-        $this->assertTrue($sentinel->published);
+        $amazon = Product::where('slug', 'sc-amazon')->first();
+        $this->assertNotNull($amazon);
+        $this->assertNotEmpty($amazon->pid);
+        $this->assertIsArray($amazon->contents);
+        $this->assertTrue($amazon->active);
+        $this->assertTrue($amazon->published);
 
         // 3. Invitecode
         $code = Invitecode::where('code', 'XU-ROOT-7789')->first();
@@ -338,8 +338,11 @@ class TelegramBotAndLegacyTest extends TestCase
             ]);
         }
 
+        $version = $product->version ?? '1.0.0';
+        $expectedFile = $product->download_file ?? 'sc-amazon-v1.0.0.zip';
+
         // 1. Attempt download without purchasing -> 403 Forbidden
-        $unauthRes = $this->getJson("/api/telegram/downloads/file?telegram_id={$uniqueId}&product_id={$product->id}&version=2.5.0");
+        $unauthRes = $this->getJson("/api/telegram/downloads/file?telegram_id={$uniqueId}&product_id={$product->id}&version={$version}");
         $unauthRes->assertStatus(403);
         $unauthRes->assertJson(['success' => false]);
 
@@ -354,9 +357,9 @@ class TelegramBotAndLegacyTest extends TestCase
         $buyRes->assertStatus(200);
 
         // 3. User now owns product -> Download file endpoint succeeds
-        $downRes = $this->get("/api/telegram/downloads/file?telegram_id={$uniqueId}&product_id={$product->id}&version=2.5.0");
+        $downRes = $this->get("/api/telegram/downloads/file?telegram_id={$uniqueId}&product_id={$product->id}&version={$version}");
         $downRes->assertStatus(200);
-        $downRes->assertDownload('x-sentinel-v2.5.0.zip');
+        $downRes->assertDownload($expectedFile);
     }
 }
 
