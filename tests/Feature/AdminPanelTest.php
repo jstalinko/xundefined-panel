@@ -243,6 +243,103 @@ class AdminPanelTest extends TestCase
         $this->assertDatabaseHas('users', ['name' => 'Agent Shadow Updated']);
     }
 
+    public function test_admin_user_table_shows_telegram_and_balance_and_searches(): void
+    {
+        $testOperative = User::create([
+            'name' => 'Zero Cool',
+            'email' => 'zerocool@hackers.local',
+            'password' => bcrypt('password123'),
+            'role' => 2,
+            'telegram_id' => '99887766',
+            'telegram_username' => 'zerocool_tg',
+            'balance' => 450.75,
+            'account_key' => 'XU-ZERO-COOL',
+        ]);
+
+        // 1. Check user table displays telegram link and balance
+        $response = $this->actingAs($this->admin)->get('/xingzheng-panel/user');
+        $response->assertStatus(200);
+        $response->assertSee('t.me/zerocool_tg');
+        $response->assertSee('$450.75');
+        $response->assertSee('TELEGRAM');
+        $response->assertSee('BALANCE');
+
+        // 2. Search by telegram username
+        $searchTg = $this->actingAs($this->admin)->get('/xingzheng-panel/user?q=zerocool_tg');
+        $searchTg->assertStatus(200);
+        $searchTg->assertSee('Zero Cool');
+
+        // 3. Search by name
+        $searchName = $this->actingAs($this->admin)->get('/xingzheng-panel/user?q=Zero+Cool');
+        $searchName->assertStatus(200);
+        $searchName->assertSee('zerocool@hackers.local');
+
+        // 4. Search by telegram ID
+        $searchTgId = $this->actingAs($this->admin)->get('/xingzheng-panel/user?q=99887766');
+        $searchTgId->assertStatus(200);
+        $searchTgId->assertSee('Zero Cool');
+
+        // 5. Search by user ID
+        $searchId = $this->actingAs($this->admin)->get('/xingzheng-panel/user?q=' . $testOperative->id);
+        $searchId->assertStatus(200);
+        $searchId->assertSee('Zero Cool');
+
+        // 6. Search by email
+        $searchEmail = $this->actingAs($this->admin)->get('/xingzheng-panel/user?q=zerocool@hackers.local');
+        $searchEmail->assertStatus(200);
+        $searchEmail->assertSee('Zero Cool');
+    }
+
+    public function test_admin_product_search_and_public_news_page(): void
+    {
+        $product = Product::create([
+            'name' => 'Quantum Bypass Exploiter',
+            'slug' => 'quantum-bypass-exploiter',
+            'pid' => 'PID-QBYPASS-77',
+            'price' => 250.00,
+            'category' => 'Exploit Kit',
+            'description' => 'Advanced memory injection toolkit.',
+            'active' => true,
+            'published' => true,
+        ]);
+
+        // 1. Search product by name
+        $searchProd = $this->actingAs($this->admin)->get('/xingzheng-panel/product?q=Quantum+Bypass');
+        $searchProd->assertStatus(200);
+        $searchProd->assertSee('PID-QBYPASS-77');
+
+        // 2. Search product by PID
+        $searchPid = $this->actingAs($this->admin)->get('/xingzheng-panel/product?q=QBYPASS-77');
+        $searchPid->assertStatus(200);
+        $searchPid->assertSee('Quantum Bypass Exploiter');
+
+        // 3. Search product by category
+        $searchCat = $this->actingAs($this->admin)->get('/xingzheng-panel/product?q=Exploit+Kit');
+        $searchCat->assertStatus(200);
+        $searchCat->assertSee('Quantum Bypass Exploiter');
+
+        // 4. Test Public News page (using app.css, not admin layouts)
+        $post = Post::create([
+            'title' => 'Critical Zero-Day Protocol Advisory',
+            'slug' => 'critical-zero-day-protocol-advisory',
+            'category' => 'announcement',
+            'content' => 'All nodes must upgrade to the latest TLS handshake patches immediately.',
+            'is_published' => true,
+        ]);
+
+        $newsResponse = $this->get('/news/' . $post->slug);
+        $newsResponse->assertStatus(200);
+        $newsResponse->assertSee('Critical Zero-Day Protocol Advisory');
+        $newsResponse->assertSee('app.css');
+        $newsResponse->assertDontSee('OPERATIVE IDENTITY');
+        $newsResponse->assertDontSee('dashboard-sidebar');
+
+        // Check posts route alias
+        $postsResponse = $this->get('/posts/' . $post->slug);
+        $postsResponse->assertStatus(200);
+        $postsResponse->assertSee('Critical Zero-Day Protocol Advisory');
+    }
+
     public function test_auth_login_and_logout_flow(): void
     {
         // 1. Login view

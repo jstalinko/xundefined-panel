@@ -40,7 +40,7 @@ async function handleDownload(ctx) {
     const downloads = data.downloads || [];
 
     if (downloads.length === 0) {
-      const text = `📥 *DOWNLOAD VAULT*\n━━━━━━━━━━━━━━━━━━━━\nYou have no active product downloads.\nBrowse the catalog to acquire products.`;
+      const text = `📥 *Download Purchased products*\n━━━━━━━━━━━━━━━━━━━━\nYou have no active product downloads.\nBrowse the catalog to acquire products.`;
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback('🛍️ Browse Products', 'menu_products')],
         [Markup.button.callback('🏠 Main Menu', 'main_menu')],
@@ -52,7 +52,7 @@ async function handleDownload(ctx) {
       return ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
     }
 
-    const text = `📥 *DOWNLOAD VAULT*\n` +
+    const text = `📥 *Download Purchased products*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `Select a purchased product below to access available versions:`;
 

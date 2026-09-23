@@ -42,13 +42,29 @@ class PostController extends Controller
     }
 
     /**
+     * Display single post/news detail public page using app.css (not using admin layouts).
+     */
+    public function publicShow(string $slug)
+    {
+        $post = Post::where('slug', $slug)
+            ->orWhere('id', is_numeric($slug) ? (int) $slug : 0)
+            ->firstOrFail();
+
+        $recentPosts = Post::where('id', '!=', $post->id)
+            ->where('is_published', true)
+            ->latest()
+            ->limit(3)
+            ->get();
+
+        return view('posts.show', compact('post', 'recentPosts'));
+    }
+
+    /**
      * Display single post detail.
      */
     public function show(string $id)
     {
-        $user = Auth::user();
-        $post = is_numeric($id) ? Post::findOrFail($id) : Post::where('slug', $id)->firstOrFail();
-        return view('admin.post.edit', compact('user', 'post'));
+        return $this->publicShow($id);
     }
 
     /**

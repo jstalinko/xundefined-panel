@@ -14,6 +14,7 @@ const {
   deleteDomain,
   getActivities,
   getProfile,
+  getPosts,
 } = require('./src/api');
 const { APP_URL, API_BASE_URL } = require('./src/config');
 
@@ -141,8 +142,18 @@ async function runTests() {
     const actRes = await getActivities(testUser.id);
     console.log(`  Recent Activities Logged: ${actRes.activities.length}`);
 
+    // 15. Test Posts & News (/api/telegram/posts)
+    console.log('\n[15/15] Testing Posts & News (/api/telegram/posts)...');
+    const postsRes = await getPosts();
+    console.log('  Status:', postsRes.success ? '✅ SUCCESS' : '❌ FAILED');
+    console.log(`  Published Posts Found: ${postsRes.posts.length}`);
+    if (postsRes.posts.length > 0) {
+      const samplePost = postsRes.posts[0];
+      console.log(`  Sample Post: "${samplePost.title}" -> ${samplePost.url}`);
+    }
+
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('✨ ALL 14 INTEGRATION TESTS PASSED PERFECTLY!');
+    console.log('✨ ALL 15 INTEGRATION TESTS PASSED PERFECTLY!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   } catch (err) {
     console.error('\n❌ TEST FAILED WITH ERROR:', err.message);

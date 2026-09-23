@@ -9,15 +9,26 @@ async function handleDomains(ctx) {
   try {
     const data = await getDomains(ctx.from.id);
     const domains = data.domains || [];
+    const quotas = data.quotas || [];
+    const accountKey = data.account_key || (ctx.state && ctx.state.user ? ctx.state.user.account_key : null) || 'N/A';
 
-    let text = `🌐 *Domain License Management*\n`;
+    let text = `🌐 *Manage Domains*\n`;
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `Digital script websites require an authorized domain to function.\n\n`;
+
+    if (quotas.length > 0) {
+      quotas.forEach((q) => {
+        text += `• *${q.display}*\n`;
+      });
+      text += `\n`;
+    }
+
+    text += `💡 *Instructions:*\n`;
+    text += `Domains are registered automatically when you upload your script to your website and input your valid \`account_key\` during setup:\n`;
+    text += `🔑 \`${accountKey}\`\n\n`;
 
     if (domains.length === 0) {
-      text += `_No domains registered yet._\n\n`;
-      text += `To register a domain, tap *➕ Register New Domain* below or type:\n`;
-      text += `\`/adddomain yourdomain.com\``;
+      text += `*Your Authorized Domains:*\n`;
+      text += `_No domains registered yet._\n`;
     } else {
       text += `*Your Authorized Domains:*\n`;
       domains.forEach((d, idx) => {
@@ -26,22 +37,26 @@ async function handleDomains(ctx) {
         text += `   • *Script:* ${d.product_name}\n`;
         text += `   • *Added:* ${d.created_at}\n\n`;
       });
-      text += `To add another domain, type:\n\`/adddomain yourdomain.com\``;
     }
 
     const keyboard = getDomainsKeyboard(domains);
 
     if (ctx.callbackQuery) {
-      await ctx.editMessageText(text, {
-        parse_mode: 'Markdown',
-        ...keyboard,
-      });
-    } else {
-      await ctx.reply(text, {
-        parse_mode: 'Markdown',
-        ...keyboard,
-      });
+      try {
+        await ctx.editMessageText(text, {
+          parse_mode: 'Markdown',
+          ...keyboard,
+        });
+        return;
+      } catch (e) {
+        // Fallback to reply if edit fails
+      }
     }
+
+    await ctx.reply(text, {
+      parse_mode: 'Markdown',
+      ...keyboard,
+    });
   } catch (err) {
     console.error('handleDomains error:', err);
     await ctx.reply(`❌ Failed to retrieve domains: ${err.message}`, {

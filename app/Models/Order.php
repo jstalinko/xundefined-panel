@@ -50,11 +50,12 @@ class Order extends Model
     protected static function booted(): void
     {
         static::creating(function (Order $order) {
+            $xuorCode = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             if (empty($order->order_number)) {
-                $order->order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+                $order->order_number = $xuorCode;
             }
             if (empty($order->invoice)) {
-                $order->invoice = 'INV-' . strtoupper(Str::random(6)) . '-' . date('ymd');
+                $order->invoice = $xuorCode;
             }
             if (empty($order->amount) && !empty($order->price)) {
                 $order->amount = $order->price;

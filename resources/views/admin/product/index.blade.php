@@ -112,19 +112,32 @@
 
         {{-- Filter & Action Controls --}}
         <div class="filter-controls">
-            <div class="search-input-wrapper">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input 
-                    type="text" 
-                    id="productClientSearch" 
-                    class="tool-filter-input" 
-                    placeholder="Search products by PID, name or description..."
-                    autocomplete="off"
-                >
-                <button type="button" id="clearProdSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">
-                    <i class="fa-solid fa-xmark"></i>
+            <form method="GET" action="{{ route('product.index') }}" style="display: flex; gap: 8px; flex: 1; max-width: 560px;">
+                <div class="search-input-wrapper" style="flex: 1;">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input 
+                        type="text" 
+                        name="q"
+                        id="productClientSearch" 
+                        class="tool-filter-input" 
+                        placeholder="Search products by PID, name, slug, category..."
+                        value="{{ request('q') }}"
+                        autocomplete="off"
+                    >
+                    @if(request('q'))
+                        <a href="{{ route('product.index') }}" class="clear-search-btn" style="display: flex;" title="Clear search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    @else
+                        <button type="button" id="clearProdSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    @endif
+                </div>
+                <button type="submit" class="cyber-btn cyber-btn-secondary" style="padding: 0 16px;" title="Search Products">
+                    <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
-            </div>
+            </form>
             <a href="{{ route('product.create') }}" class="cyber-btn cyber-btn-primary">
                 <i class="fa-solid fa-plus"></i>
                 <span>ADD NEW PRODUCT</span>
@@ -181,7 +194,7 @@
                 </thead>
                 <tbody>
                     @foreach ($products as $index => $prod)
-                        <tr class="product-row-item" data-name="{{ strtolower($prod->name) }}" data-pid="{{ strtolower($prod->pid ?? '') }}" data-desc="{{ strtolower($prod->description ?? '') }}">
+                        <tr class="product-row-item" data-id="{{ $prod->id }}" data-name="{{ strtolower($prod->name) }}" data-slug="{{ strtolower($prod->slug ?? '') }}" data-pid="{{ strtolower($prod->pid ?? '') }}" data-category="{{ strtolower($prod->category ?? '') }}" data-desc="{{ strtolower($prod->description ?? '') }}">
                             <td style="color: var(--text-muted); font-weight: 700;">
                                 {{ sprintf('%02d', $index + 1) }}
                             </td>
@@ -328,11 +341,14 @@
             }
 
             prodRows.forEach(row => {
-                const name = row.getAttribute('data-name') || '';
-                const pid = row.getAttribute('data-pid') || '';
-                const desc = row.getAttribute('data-desc') || '';
+                const id = (row.getAttribute('data-id') || '').toLowerCase();
+                const name = (row.getAttribute('data-name') || '').toLowerCase();
+                const slug = (row.getAttribute('data-slug') || '').toLowerCase();
+                const pid = (row.getAttribute('data-pid') || '').toLowerCase();
+                const cat = (row.getAttribute('data-category') || '').toLowerCase();
+                const desc = (row.getAttribute('data-desc') || '').toLowerCase();
 
-                if (name.includes(query) || pid.includes(query) || desc.includes(query)) {
+                if (id === query || name.includes(query) || slug.includes(query) || pid.includes(query) || cat.includes(query) || desc.includes(query)) {
                     row.style.display = '';
                     matches++;
                 } else {

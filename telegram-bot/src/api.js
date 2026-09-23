@@ -113,10 +113,10 @@ async function getOrders(telegramId) {
 /**
  * Get user's recent activities
  */
-async function getActivities(telegramId) {
+async function getActivities(telegramId, all = false) {
   try {
     const response = await apiClient.get('/activities', {
-      params: { telegram_id: String(telegramId) },
+      params: { telegram_id: String(telegramId), all: all ? 1 : 0 },
     });
     return response.data;
   } catch (error) {
@@ -254,6 +254,33 @@ async function getCryptoCurrencies() {
   }
 }
 
+/**
+ * Download all activities as a TXT file buffer
+ */
+async function downloadActivitiesTxt(telegramId) {
+  try {
+    const response = await apiClient.get('/activities/download', {
+      params: { telegram_id: String(telegramId) },
+      responseType: 'arraybuffer',
+    });
+    return Buffer.from(response.data);
+  } catch (error) {
+    throw handleApiError(error, 'Failed to download activities text file');
+  }
+}
+
+/**
+ * Get published posts / news from database
+ */
+async function getPosts() {
+  try {
+    const response = await apiClient.get('/posts');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, 'Failed to fetch posts/news');
+  }
+}
+
 module.exports = {
   apiClient,
   initUser,
@@ -263,6 +290,7 @@ module.exports = {
   getDownloads,
   getOrders,
   getActivities,
+  downloadActivitiesTxt,
   getDomains,
   addDomain,
   deleteDomain,
@@ -272,4 +300,5 @@ module.exports = {
   createTopupCrypto,
   checkTopupStatus,
   getCryptoCurrencies,
+  getPosts,
 };

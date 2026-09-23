@@ -16,15 +16,17 @@ async function handleBalance(ctx) {
     const data = await getBalance(ctx.from.id);
     const balance = Number(data.balance).toFixed(2);
     const user = ctx.state.user;
-    const name = user ? user.name : (ctx.from.first_name || 'Operative');
+    const username = (user && user.telegram_username)
+      ? `@${user.telegram_username}`
+      : (ctx.from.username ? `@${ctx.from.username}` : (user ? user.name : (ctx.from.first_name || 'User')));
 
     let text = `💳 *ACCOUNT BALANCE*\n`;
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `• *Operative:* ${name}\n`;
+    text += `• *Username:* ${username}\n`;
     text += `• *Telegram ID:* \`${ctx.from.id}\`\n`;
     text += `• *Balance:* \`$${balance} USD\`\n`;
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `Automated crypto deposit via CoinPayments gateway:`;
+    text += `Automated crypto deposit:`;
 
     const keyboard = getBalanceKeyboard();
 

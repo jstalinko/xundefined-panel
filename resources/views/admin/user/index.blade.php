@@ -63,19 +63,32 @@
 
         {{-- Filter & Action Controls --}}
         <div class="filter-controls">
-            <div class="search-input-wrapper">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input 
-                    type="text" 
-                    id="userClientSearch" 
-                    class="tool-filter-input" 
-                    placeholder="Search by name, email, or invite key..."
-                    autocomplete="off"
-                >
-                <button type="button" id="clearUserSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">
-                    <i class="fa-solid fa-xmark"></i>
+            <form method="GET" action="{{ route('user.index') }}" style="display: flex; gap: 8px; flex: 1; max-width: 560px;">
+                <div class="search-input-wrapper" style="flex: 1;">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input 
+                        type="text" 
+                        name="q"
+                        id="userClientSearch" 
+                        class="tool-filter-input" 
+                        placeholder="Search by username, name, telegram, id, email..."
+                        value="{{ request('q') }}"
+                        autocomplete="off"
+                    >
+                    @if(request('q'))
+                        <a href="{{ route('user.index') }}" class="clear-search-btn" style="display: flex;" title="Clear search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    @else
+                        <button type="button" id="clearUserSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    @endif
+                </div>
+                <button type="submit" class="cyber-btn cyber-btn-secondary" style="padding: 0 16px;" title="Execute Search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
-            </div>
+            </form>
             <button type="button" class="cyber-btn cyber-btn-primary" onclick="openCreateUserModal()">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>NEW OPERATIVE</span>
@@ -162,6 +175,8 @@
                     <tr>
                         <th style="width: 50px;">#</th>
                         <th>OPERATIVE IDENTITY</th>
+                        <th>TELEGRAM</th>
+                        <th>BALANCE</th>
                         <th>CLEARANCE ROLE</th>
                         <th>ACCOUNT KEY</th>
                         <th>DOMAINS</th>
@@ -172,7 +187,7 @@
                 </thead>
                 <tbody>
                     @foreach ($users as $index => $u)
-                        <tr class="user-row-item" data-name="{{ strtolower($u->name) }}" data-email="{{ strtolower($u->email) }}" data-account="{{ strtolower($u->account_key ?? '') }}" data-invite="{{ strtolower($u->account_key ?? '') }}">
+                        <tr class="user-row-item" data-id="{{ $u->id }}" data-name="{{ strtolower($u->name) }}" data-username="{{ strtolower($u->telegram_username ?? '') }}" data-telegram="{{ strtolower(($u->telegram_username ?? '') . ' ' . ($u->telegram_id ?? '')) }}" data-email="{{ strtolower($u->email) }}" data-account="{{ strtolower($u->account_key ?? '') }}" data-invite="{{ strtolower($u->account_key ?? '') }}">
                             <td style="color: var(--text-muted); font-weight: 700;">
                                 {{ sprintf('%02d', $index + 1) }}
                             </td>
@@ -195,6 +210,26 @@
                                 <div style="color: #00ff66; font-family: var(--font-mono); font-size: 0.74rem; margin-top: 2px;">
                                     <i class="fa-solid fa-envelope" style="font-size: 0.68rem;"></i> {{ $u->email }}
                                 </div>
+                            </td>
+                            <td>
+                                @if ($u->telegram_username)
+                                    <a href="https://t.me/{{ $u->telegram_username }}" target="_blank" rel="noopener noreferrer" style="color: #48cae4; font-family: var(--font-mono); font-size: 0.78rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Open Telegram Profile">
+                                        <i class="fa-brands fa-telegram" style="color: #48cae4;"></i>
+                                        t.me/{{ $u->telegram_username }}
+                                    </a>
+                                @elseif ($u->telegram_id)
+                                    <a href="https://t.me/{{ $u->telegram_id }}" target="_blank" rel="noopener noreferrer" style="color: #48cae4; font-family: var(--font-mono); font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;" title="Telegram ID">
+                                        <i class="fa-brands fa-telegram"></i>
+                                        ID: {{ $u->telegram_id }}
+                                    </a>
+                                @else
+                                    <span style="color: var(--text-muted); font-size: 0.74rem;">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span style="font-family: var(--font-mono); font-weight: 700; color: #00ff66; font-size: 0.82rem; background: rgba(0, 255, 102, 0.08); border: 1px solid rgba(0, 255, 102, 0.25); padding: 2px 6px; border-radius: 2px;">
+                                    ${{ number_format((float) ($u->balance ?? 0), 2) }}
+                                </span>
                             </td>
                             <td>
                                 @if ((int) $u->role === 1)
@@ -403,11 +438,14 @@
             }
 
             userRows.forEach(row => {
-                const name = row.getAttribute('data-name') || '';
-                const email = row.getAttribute('data-email') || '';
-                const account = row.getAttribute('data-account') || row.getAttribute('data-invite') || '';
+                const id = (row.getAttribute('data-id') || '').toLowerCase();
+                const name = (row.getAttribute('data-name') || '').toLowerCase();
+                const email = (row.getAttribute('data-email') || '').toLowerCase();
+                const username = (row.getAttribute('data-username') || '').toLowerCase();
+                const telegram = (row.getAttribute('data-telegram') || '').toLowerCase();
+                const account = (row.getAttribute('data-account') || row.getAttribute('data-invite') || '').toLowerCase();
 
-                if (name.includes(query) || email.includes(query) || account.includes(query)) {
+                if (id === query || name.includes(query) || email.includes(query) || username.includes(query) || telegram.includes(query) || account.includes(query)) {
                     row.style.display = '';
                     matches++;
                 } else {
@@ -468,7 +506,7 @@
 
     function openEditUserModal(data) {
         if (!userBackdrop || !userForm) return;
-        userForm.action = `/admin/user/${data.id}`;
+        userForm.action = `{{ url('xingzheng-panel/user') }}/${data.id}`;
         userMethodContainer.innerHTML = '<input type="hidden" name="_method" value="PUT">';
         userHeaderTitle.textContent = `EDIT OPERATIVE: ${data.name}`;
         userSubmitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SAVE CHANGES';

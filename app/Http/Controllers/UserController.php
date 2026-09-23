@@ -24,7 +24,13 @@ class UserController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
                   ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('telegram_username', 'like', '%' . $search . '%')
+                  ->orWhere('telegram_id', 'like', '%' . $search . '%')
                   ->orWhere('account_key', 'like', '%' . $search . '%');
+
+                if (is_numeric($search)) {
+                    $q->orWhere('id', (int) $search);
+                }
             });
         }
 

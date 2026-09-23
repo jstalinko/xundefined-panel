@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\Domain;
 use App\Models\Order;
+use App\Models\Post;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,7 @@ class TelegramApiController extends Controller
                 'password' => Hash::make(Str::random(32)),
                 'telegram_id' => $telegramId,
                 'telegram_username' => $telegramUsername,
+                'account_key' => 'XU-' . strtoupper(Str::random(8)),
                 'balance' => 0.00,
                 'role' => 'user',
             ]);
@@ -66,6 +68,9 @@ class TelegramApiController extends Controller
             }
             if ($name && $user->name !== $name) {
                 $updates['name'] = $name;
+            }
+            if (empty($user->account_key)) {
+                $updates['account_key'] = 'XU-' . strtoupper(Str::random(8));
             }
             if (!empty($updates)) {
                 $user->update($updates);
@@ -208,14 +213,17 @@ class TelegramApiController extends Controller
             $user->save();
 
             // Generate order
-            $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            $orderNumber = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             $downloadToken = Str::random(40);
 
             $order = Order::create([
                 'order_number' => $orderNumber,
+                'invoice' => $orderNumber,
                 'user_id' => $user->id,
                 'product_id' => $product->id,
                 'amount' => $product->price,
+                'price' => $product->price,
+                'payment_method' => 'Balance',
                 'status' => 'completed',
                 'download_token' => $downloadToken,
                 'notes' => 'Purchased via Telegram Bot',
@@ -308,21 +316,53 @@ class TelegramApiController extends Controller
         $productId = $request->query('product_id') ?? $request->input('product_id');
         $filename = $request->query('file') ?? $request->input('file');
         $version = $request->query('version') ?? $request->input('version');
+        $token = $request->query('token') ?? $request->input('token');
 
-        if (!$telegramId || !$productId) {
-            return response()->json(['success' => false, 'message' => 'telegram_id and product_id are required'], 400);
+        $purchased = false;
+        $user = null;
+
+        // 1. Verify by download token if provided
+        if (!empty($token)) {
+            $order = Order::with(['user', 'product'])
+                ->where('download_token', $token)
+                ->where('status', 'completed')
+                ->first();
+
+            if ($order) {
+                $user = $order->user;
+                if (empty($productId)) {
+                    $productId = $order->product_id;
+                }
+                if (empty($telegramId) && $user) {
+                    $telegramId = $user->telegram_id;
+                }
+                if (empty($productId) || (int) $order->product_id === (int) $productId) {
+                    $purchased = true;
+                }
+            }
         }
 
-        $user = User::where('telegram_id', $telegramId)->first();
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+        if (!empty($token) && !$purchased && empty($telegramId)) {
+            return response()->json(['success' => false, 'message' => 'Invalid or expired download token.'], 403);
         }
 
-        // Verify user purchased this product
-        $purchased = Order::where('user_id', $user->id)
-            ->where('product_id', $productId)
-            ->where('status', 'completed')
-            ->exists();
+        // 2. Verify by telegram_id and product_id
+        if (!$purchased) {
+            if (!$telegramId || !$productId) {
+                return response()->json(['success' => false, 'message' => 'telegram_id and product_id (or token) are required'], 400);
+            }
+
+            $user = User::where('telegram_id', $telegramId)->first();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            }
+
+            // Verify user purchased this product
+            $purchased = Order::where('user_id', $user->id)
+                ->where('product_id', $productId)
+                ->where('status', 'completed')
+                ->exists();
+        }
 
         if (!$purchased) {
             return response()->json(['success' => false, 'message' => 'Unauthorized: Product not purchased'], 403);
@@ -395,11 +435,15 @@ class TelegramApiController extends Controller
             ->orderBy('id', 'desc')
             ->get()
             ->map(function ($order) {
+                $payment = $order->payment_currency ?: ($order->payment_method ?: 'Balance');
                 return [
                     'id' => $order->id,
                     'order_number' => $order->order_number,
+                    'invoice' => $order->invoice,
                     'product_name' => $order->product ? $order->product->name : 'Unknown Script',
                     'amount' => (float) ($order->amount ?? $order->price),
+                    'payment_method' => $payment,
+                    'payment_currency' => $order->payment_currency,
                     'status' => $order->status,
                     'created_at' => $order->created_at->format('Y-m-d H:i'),
                 ];
@@ -412,7 +456,7 @@ class TelegramApiController extends Controller
     }
 
     /**
-     * Get user's activities.
+     * Get user's activities (defaults to 10 recent).
      */
     public function activities(Request $request): JsonResponse
     {
@@ -426,9 +470,10 @@ class TelegramApiController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
+        $limit = $request->boolean('all') ? 500 : 10;
         $activities = Activity::where('user_id', $user->id)
             ->orderBy('id', 'desc')
-            ->limit(20)
+            ->limit($limit)
             ->get()
             ->map(function ($act) {
                 return [
@@ -446,7 +491,48 @@ class TelegramApiController extends Controller
     }
 
     /**
-     * Get user's registered domains for script websites.
+     * Download all activities as txt data.
+     */
+    public function downloadActivitiesTxt(Request $request)
+    {
+        $telegramId = $request->query('telegram_id') ?? $request->input('telegram_id');
+        if (!$telegramId) {
+            return response()->json(['success' => false, 'message' => 'telegram_id is required'], 400);
+        }
+
+        $user = User::where('telegram_id', $telegramId)->first();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+        }
+
+        $activities = Activity::where('user_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $content = "====================================================\n";
+        $content .= "       XUNDEFINED - ACCOUNT ACTIVITY LOGS\n";
+        $content .= "====================================================\n";
+        $content .= "User: {$user->name} (Telegram ID: {$telegramId})\n";
+        $content .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n";
+        $content .= "Total Records: {$activities->count()}\n";
+        $content .= "====================================================\n\n";
+
+        foreach ($activities as $idx => $act) {
+            $num = $idx + 1;
+            $content .= "[#{$num}] {$act->created_at->format('Y-m-d H:i:s')} | {$act->action}\n";
+            $content .= "    {$act->description}\n\n";
+        }
+
+        $filename = "activities-{$telegramId}.txt";
+
+        return response($content, 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
+    /**
+     * Get user's registered domains for script websites and domain quotas.
      */
     public function domains(Request $request): JsonResponse
     {
@@ -458,6 +544,45 @@ class TelegramApiController extends Controller
         $user = User::where('telegram_id', $telegramId)->first();
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
+        }
+
+        if (empty($user->account_key)) {
+            $user->account_key = 'XU-' . strtoupper(Str::random(8));
+            $user->save();
+        }
+
+        // Get completed orders for products to compute domain quotas
+        $productOrders = Order::where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->whereNotNull('product_id')
+            ->with('product')
+            ->get();
+
+        $quotas = [];
+        $seenProducts = [];
+
+        foreach ($productOrders as $order) {
+            $prod = $order->product;
+            if (!$prod || isset($seenProducts[$prod->id])) {
+                continue;
+            }
+            $seenProducts[$prod->id] = true;
+
+            $quota = (int) ($order->domain_quota ?: 3);
+            $used = Domain::where('user_id', $user->id)
+                ->where(function ($q) use ($prod, $order) {
+                    $q->where('product_id', $prod->id)
+                      ->orWhere('order_id', $order->id);
+                })
+                ->count();
+
+            $quotas[] = [
+                'product_id' => $prod->id,
+                'product_name' => $prod->name,
+                'used' => $used,
+                'quota' => $quota,
+                'display' => "{$prod->name} {$used}/{$quota} Domains.",
+            ];
         }
 
         $domains = Domain::where('user_id', $user->id)
@@ -476,6 +601,8 @@ class TelegramApiController extends Controller
 
         return response()->json([
             'success' => true,
+            'account_key' => $user->account_key,
+            'quotas' => $quotas,
             'domains' => $domains,
         ]);
     }
@@ -709,5 +836,36 @@ class TelegramApiController extends Controller
     public function currencies(Request $request, CoinPaymentsController $coinPaymentsController): JsonResponse
     {
         return $coinPaymentsController->getCurrencies($request);
+    }
+
+    /**
+     * Get published posts/news for Telegram Bot Info menu.
+     */
+    public function posts(Request $request): JsonResponse
+    {
+        $posts = Post::where('is_published', true)
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function ($post) {
+                $rawContent = strip_tags($post->content);
+                $clean = trim(preg_replace('/\s+/', ' ', $rawContent));
+                $shortDescription = Str::limit($clean, 120);
+
+                return [
+                    'id' => $post->id,
+                    'title' => $post->title,
+                    'slug' => $post->slug,
+                    'category' => $post->category,
+                    'short_description' => $shortDescription,
+                    'url' => url('/news/' . $post->slug),
+                    'created_at' => $post->created_at ? $post->created_at->format('Y-m-d H:i') : '-',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'posts' => $posts,
+        ]);
     }
 }

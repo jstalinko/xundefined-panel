@@ -26,20 +26,37 @@ async function handleOrders(ctx) {
 
     orders.forEach((ord, idx) => {
       const statusIcon = ord.status === 'completed' ? '✅' : '⏳';
-      text += `*${idx + 1}. Order:* \`${ord.order_number}\`\n`;
+      const orderRef = ord.invoice || ord.order_number || '-';
+      const paymentMethod = ord.payment_method || ord.payment_currency || 'Balance';
+      text += `*${idx + 1}. Order:* \`${orderRef}\`\n`;
       text += `• *Product:* ${ord.product_name}\n`;
+      text += `• *Payment Method:* \`${paymentMethod}\`\n`;
       text += `• *Amount:* *$${Number(ord.amount).toFixed(2)} USD*\n`;
       text += `• *Status:* ${statusIcon} \`${ord.status.toUpperCase()}\`\n`;
       text += `• *Date:* ${ord.created_at}\n\n`;
     });
 
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('📥 Go to Downloads', 'menu_download')],
+      [Markup.button.callback('🛍️ Shop More', 'menu_products')],
+      [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+    ]);
+
+    if (ctx.callbackQuery) {
+      try {
+        await ctx.editMessageText(text, {
+          parse_mode: 'Markdown',
+          ...keyboard,
+        });
+        return;
+      } catch (e) {
+        // Fallback to reply
+      }
+    }
+
     await ctx.reply(text, {
       parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('📥 Go to Downloads', 'menu_download')],
-        [Markup.button.callback('🛍️ Shop More', 'menu_products')],
-        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
-      ])
+      ...keyboard,
     });
   } catch (err) {
     console.error('handleOrders error:', err);

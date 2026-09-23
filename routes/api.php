@@ -37,11 +37,12 @@ Route::prefix('telegram')->group(function () {
     Route::get('/orders', [TelegramApiController::class, 'orders']);
 
     // Downloads
-    Route::get('/downloads', [TelegramApiController::class, 'downloads']);
-    Route::get('/downloads/file', [TelegramApiController::class, 'downloadFile']);
+    Route::get('/downloads', [TelegramApiController::class, 'downloads'])->name('api.telegram.downloads');
+    Route::get('/downloads/file', [TelegramApiController::class, 'downloadFile'])->name('api.telegram.download-file');
 
     // Activities
-    Route::get('/activities', [TelegramApiController::class, 'activities']);
+    Route::get('/activities', [TelegramApiController::class, 'activities'])->name('api.telegram.activities');
+    Route::get('/activities/download', [TelegramApiController::class, 'downloadActivitiesTxt'])->name('api.telegram.activities.download');
 
     // Domains
     Route::get('/domains', [TelegramApiController::class, 'domains']);
@@ -55,4 +56,7 @@ Route::prefix('telegram')->group(function () {
     Route::post('/balance/create-topup', [TelegramApiController::class, 'createTopup']);
     Route::get('/balance/topup-status/{invoice}', [TelegramApiController::class, 'checkTopupStatus']);
     Route::get('/balance/currencies', [TelegramApiController::class, 'currencies']);
+
+    // Information / Posts / News
+    Route::get('/posts', [TelegramApiController::class, 'posts'])->name('api.telegram.posts');
 });

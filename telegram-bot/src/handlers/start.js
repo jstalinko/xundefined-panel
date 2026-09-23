@@ -8,7 +8,7 @@ async function handleStart(ctx) {
   const isNew = ctx.state.isNewUser;
   const name = user ? user.name : (ctx.from.first_name || 'User');
   const balance = user ? Number(user.balance).toFixed(2) : '0.00';
-  const role = user ? user.role.toUpperCase() : 'USER';
+  const role = user && user.role ? String(user.role).toUpperCase() : 'USER';
   const ordersCount = user ? (user.orders_count || 0) : 0;
   const domainsCount = user ? (user.domains_count || 0) : 0;
 
@@ -26,7 +26,6 @@ ${statusNote}👤 *User Profile & Account Summary:*
 • *Name:* ${name}
 • *Telegram ID:* \`${ctx.from.id}\`
 • *Username:* ${ctx.from.username ? `@${ctx.from.username}` : '_Not set_'}
-• *Role:* \`${role}\`
 • *Current Balance:* 💰 *$${balance} USD*
 • *Purchased Scripts:* 📦 \`${ordersCount}\`
 • *Active Domains:* 🌐 \`${domainsCount}\`
@@ -34,6 +33,17 @@ ${statusNote}👤 *User Profile & Account Summary:*
 
 🛒 *What would you like to do today?*
 Choose an option below or use the quick menu buttons:`;
+
+  if (ctx.callbackQuery) {
+    try {
+      return await ctx.editMessageText(text, {
+        parse_mode: 'Markdown',
+        ...getMainInlineKeyboard(),
+      });
+    } catch (e) {
+      // Fallback to reply
+    }
+  }
 
   // Send persistent reply keyboard first or alongside message
   await ctx.reply(text, {

@@ -38,7 +38,9 @@ Route::get('/xingzheng-panel/login', function () {
     return redirect()->route('login');
 });
 
-Route::get('/notes/{slug}', [PostController::class, 'show'])->name('dashboard.notes.detail');
+Route::get('/news/{slug}', [PostController::class, 'publicShow'])->name('news.show');
+Route::get('/posts/{slug}', [PostController::class, 'publicShow'])->name('posts.show');
+Route::get('/notes/{slug}', [PostController::class, 'publicShow'])->name('dashboard.notes.detail');
 
 // CoinPayments Gateway & Webhook
 Route::get('/payment/{invoice}', [CoinPaymentsController::class, 'showPayment'])->name('dashboard.payment.show');

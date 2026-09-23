@@ -14,7 +14,7 @@ const {
   handleSendDownloadFile,
 } = require('./handlers/download');
 const { handleOrders } = require('./handlers/orders');
-const { handleActivities } = require('./handlers/activities');
+const { handleActivities, handleDownloadActivitiesTxt } = require('./handlers/activities');
 const {
   handleDomains,
   handleAddDomainPrompt,
@@ -22,6 +22,7 @@ const {
   handleDeleteDomain,
 } = require('./handlers/domains');
 const { handleProfile } = require('./handlers/profile');
+const { handleInfo } = require('./handlers/info');
 const {
   handleBalance,
   handleCryptoStart,
@@ -61,6 +62,7 @@ bot.command('domains', handleDomains);
 bot.command('adddomain', handleAddDomainCommand);
 bot.command('profile', handleProfile);
 bot.command('balance', handleBalance);
+bot.command('info', handleInfo);
 
 bot.command('help', async (ctx) => {
   const helpText = `📖 *Bot Commands & Menu Guide*
@@ -72,9 +74,10 @@ bot.command('help', async (ctx) => {
 • /orders - View your purchase history
 • /activities - View recent account activity
 • /domains - Manage authorized script domains
-• /adddomain <name> - Register script domain (e.g. \`/adddomain example.com\`)
 • /profile - Check your profile & statistics
 • /balance - Check balance & deposit guide
+• /info - View latest news, updates & announcements
+• *Support & Help:* https://t.me/xingzhengx
 ━━━━━━━━━━━━━━━━━━━━`;
   await ctx.reply(helpText, { parse_mode: 'Markdown' });
 });
@@ -94,6 +97,8 @@ bot.hears(['🌐 Domains', 'Domains', 'domains'], handleDomains);
 bot.hears(['👤 Profile', 'Profile', 'profile'], handleProfile);
 // Balance
 bot.hears(['💳 Balance', 'Balance', 'balance'], handleBalance);
+// Info
+bot.hears(['ℹ️ Info', 'Info', 'info'], handleInfo);
 
 // --- Callback Query Handlers ---
 bot.action('main_menu', async (ctx) => {
@@ -121,6 +126,10 @@ bot.action('menu_activities', async (ctx) => {
   return handleActivities(ctx);
 });
 
+bot.action('act_download_txt', async (ctx) => {
+  return handleDownloadActivitiesTxt(ctx);
+});
+
 bot.action('menu_domains', async (ctx) => {
   await ctx.answerCbQuery();
   return handleDomains(ctx);
@@ -134,6 +143,11 @@ bot.action('menu_profile', async (ctx) => {
 bot.action('menu_balance', async (ctx) => {
   await ctx.answerCbQuery();
   return handleBalance(ctx);
+});
+
+bot.action('menu_info', async (ctx) => {
+  await ctx.answerCbQuery();
+  return handleInfo(ctx);
 });
 
 // Product detail action: prod_view_<id>
@@ -173,6 +187,16 @@ bot.action(/^dl_file_(\d+)_(.+)$/, async (ctx) => {
   const productId = ctx.match[1];
   const version = ctx.match[2];
   return handleSendDownloadFile(ctx, productId, version);
+});
+
+bot.action(/^(?:dl_file_|dl_download_)(\d+)$/, async (ctx) => {
+  try {
+    await ctx.answerCbQuery();
+  } catch (cbErr) {
+    // Ignore cb query answer error
+  }
+  const productId = ctx.match[1];
+  return handleSendDownloadFile(ctx, productId, null);
 });
 
 // Domains actions

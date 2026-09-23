@@ -8,7 +8,7 @@ function getMainMenuKeyboard() {
     ['🛍️ Products', '📥 Download'],
     ['📋 Orders', '📊 Activities'],
     ['🌐 Domains', '👤 Profile'],
-    ['💳 Balance']
+    ['💳 Balance', 'ℹ️ Info']
   ]).resize();
 }
 
@@ -31,6 +31,10 @@ function getMainInlineKeyboard() {
     ],
     [
       Markup.button.callback('💳 Balance', 'menu_balance'),
+      Markup.button.callback('ℹ️ Info', 'menu_info'),
+    ],
+    [
+      Markup.button.url('💬 Help', 'https://t.me/xingzhengx'),
     ]
   ]);
 }
@@ -175,7 +179,6 @@ function getDomainsKeyboard(domains = []) {
   const rows = [];
   
   rows.push([
-    Markup.button.callback('➕ Register Domain', 'dom_add_prompt'),
     Markup.button.callback('🔄 Refresh', 'menu_domains'),
   ]);
 
@@ -188,6 +191,26 @@ function getDomainsKeyboard(domains = []) {
   }
 
   rows.push([Markup.button.callback('🏠 Main Menu', 'main_menu')]);
+
+  return Markup.inlineKeyboard(rows);
+}
+
+/**
+ * Activities action keyboard
+ */
+function getActivitiesKeyboard(hasActivities = true) {
+  const rows = [];
+
+  if (hasActivities) {
+    rows.push([
+      Markup.button.callback('📄 Download All as TXT', 'act_download_txt'),
+    ]);
+  }
+
+  rows.push([
+    Markup.button.callback('🔄 Refresh Activities', 'menu_activities'),
+    Markup.button.callback('🏠 Main Menu', 'main_menu'),
+  ]);
 
   return Markup.inlineKeyboard(rows);
 }
@@ -233,6 +256,27 @@ function getProductVersionsKeyboard(productId, productName, versions = []) {
   return Markup.inlineKeyboard(buttons);
 }
 
+/**
+ * Info / News Keyboard with "View full" URL buttons
+ */
+function getInfoKeyboard(posts = []) {
+  const rows = [];
+
+  posts.forEach((p, idx) => {
+    const label = posts.length === 1
+      ? '🔗 View full'
+      : `🔗 View full: ${p.title.length > 20 ? p.title.slice(0, 18) + '...' : p.title}`;
+    rows.push([Markup.button.url(label, p.url)]);
+  });
+
+  rows.push([
+    Markup.button.callback('🔄 Refresh Info', 'menu_info'),
+    Markup.button.callback('🏠 Main Menu', 'main_menu'),
+  ]);
+
+  return Markup.inlineKeyboard(rows);
+}
+
 module.exports = {
   getMainMenuKeyboard,
   getMainInlineKeyboard,
@@ -244,7 +288,9 @@ module.exports = {
   getCryptoCoinsKeyboard,
   getCryptoInvoiceKeyboard,
   getDomainsKeyboard,
+  getActivitiesKeyboard,
   getPurchasedProductsKeyboard,
   getProductVersionsKeyboard,
+  getInfoKeyboard,
 };
 

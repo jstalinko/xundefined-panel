@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\CoinPaymentsService;
+use App\Services\TelegramService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,10 +22,14 @@ use Illuminate\View\View;
 class CoinPaymentsController extends Controller
 {
     protected CoinPaymentsService $coinPaymentsService;
+    protected TelegramService $telegramService;
 
-    public function __construct(CoinPaymentsService $coinPaymentsService)
-    {
+    public function __construct(
+        CoinPaymentsService $coinPaymentsService,
+        ?TelegramService $telegramService = null
+    ) {
         $this->coinPaymentsService = $coinPaymentsService;
+        $this->telegramService = $telegramService ?? app(TelegramService::class);
     }
 
     /**
@@ -40,6 +45,8 @@ class CoinPaymentsController extends Controller
                 'currency2' => 'nullable|string|max:20',
                 'currency1' => 'nullable|string|max:10',
                 'telegram_id' => 'nullable|string',
+                'chat_id' => 'nullable|string',
+                'user_telegram' => 'nullable|string',
             ]);
         } else {
             $request->validate([
@@ -47,13 +54,24 @@ class CoinPaymentsController extends Controller
                 'currency2' => 'nullable|string|max:20',
                 'currency1' => 'nullable|string|max:10',
                 'telegram_id' => 'nullable|string',
+                'chat_id' => 'nullable|string',
+                'user_telegram' => 'nullable|string',
             ]);
         }
 
+        $telegramInput = $request->input('chat_id')
+            ?: ($request->input('telegram_id') ?: $request->input('user_telegram'));
+
         /** @var \App\Models\User|null $user */
         $user = Auth::user() ?? $request->user();
-        if (!$user && $request->filled('telegram_id')) {
-            $user = User::where('telegram_id', $request->input('telegram_id'))->first();
+        if (!$user && !empty($telegramInput)) {
+            $user = User::where('telegram_id', $telegramInput)
+                ->orWhere('telegram_username', ltrim($telegramInput, '@'))
+                ->first();
+        }
+
+        if ($user && empty($user->telegram_id) && !empty($telegramInput) && (is_numeric($telegramInput) || preg_match('/^-?\d+$/', $telegramInput))) {
+            $user->update(['telegram_id' => $telegramInput]);
         }
 
         if (!$user) {
@@ -88,19 +106,22 @@ class CoinPaymentsController extends Controller
 
             $amount = (float) $product->price;
             $itemName = $product->name;
-            $invoice = 'INV-' . strtoupper(Str::random(6)) . '-' . date('ymd');
+            $invoice = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
         } else {
             $amount = (float) $request->input('amount');
-            $invoice = 'TOPUP-' . strtoupper(Str::random(6)) . '-' . date('ymd');
+            $invoice = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             $itemName = "Balance Topup #{$invoice}";
         }
 
         $ipnUrl = config('coinpayments.ipn_url') ?: route('coinpayments.ipn.web');
 
         try {
+            $targetChatId = $telegramInput ?: $user->telegram_id;
+            $orderNumber = $invoice;
+
             // Create pending Order record in database first
             $order = Order::create([
-                'order_number' => 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6)),
+                'order_number' => $orderNumber,
                 'invoice' => $invoice,
                 'user_id' => $user->id,
                 'product_id' => $product ? $product->id : null,
@@ -110,7 +131,12 @@ class CoinPaymentsController extends Controller
                 'payment_method' => 'Crypto (' . $currency2 . ')',
                 'payment_currency' => $currency2,
                 'status' => Order::STATUS_PENDING,
+                'download_token' => Str::random(40),
                 'notes' => $isTopup ? 'Crypto Balance Top-up' : 'Crypto Product Purchase',
+                'payment_meta' => array_filter([
+                    'chat_id' => $targetChatId,
+                    'telegram_id' => $targetChatId,
+                ]),
             ]);
 
             $apiParams = [
@@ -125,6 +151,8 @@ class CoinPaymentsController extends Controller
                 'custom' => json_encode([
                     'order_id' => $order->id,
                     'user_id' => $user->id,
+                    'chat_id' => $targetChatId,
+                    'telegram_id' => $targetChatId,
                     'invoice' => $order->invoice,
                     'is_topup' => $isTopup,
                 ]),
@@ -163,6 +191,9 @@ class CoinPaymentsController extends Controller
                 $cpResult = $this->coinPaymentsService->createTransaction($apiParams);
             }
 
+            $existingMeta = is_array($order->payment_meta) ? $order->payment_meta : [];
+            $mergedMeta = array_merge($existingMeta, $cpResult);
+
             // Update order with crypto transaction details
             $order->update([
                 'txn_id' => $cpResult['txn_id'] ?? null,
@@ -173,7 +204,7 @@ class CoinPaymentsController extends Controller
                 'payment_timeout' => isset($cpResult['timeout']) ? (int) $cpResult['timeout'] : 3600,
                 'payment_status_url' => $cpResult['status_url'] ?? null,
                 'payment_qrcode_url' => $cpResult['qrcode_url'] ?? null,
-                'payment_meta' => $cpResult,
+                'payment_meta' => $mergedMeta,
             ]);
 
             ActivityLog::create([
@@ -334,6 +365,19 @@ class CoinPaymentsController extends Controller
                     ]);
                 }
 
+                // Send Telegram Notification to user
+                try {
+                    $this->telegramService->sendOrderConfirmation(
+                        $order->fresh(['user', 'product']),
+                        null,
+                        $data
+                    );
+                } catch (\Throwable $tgErr) {
+                    Log::error("Failed to send Telegram confirmation notification for Order #{$order->invoice}: " . $tgErr->getMessage(), [
+                        'exception' => $tgErr,
+                    ]);
+                }
+
                 Log::info("CoinPayments Order #{$order->invoice} marked as COMPLETED.");
             }
         } elseif ($status < 0) {
@@ -431,6 +475,12 @@ class CoinPaymentsController extends Controller
                                     'description' => "Balance topped up by $" . number_format($order->amount, 2) . " USD via CoinPayments (INV: {$order->invoice})",
                                     'user_id' => $order->user_id,
                                 ]);
+                            }
+
+                            try {
+                                $this->telegramService->sendOrderConfirmation($order->fresh(['user', 'product']));
+                            } catch (\Throwable $tgEx) {
+                                Log::error("Failed to send Telegram notification in checkStatus for Order #{$order->invoice}: " . $tgEx->getMessage());
                             }
                         }
                     }
