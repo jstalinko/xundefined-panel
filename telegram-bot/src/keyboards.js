@@ -257,24 +257,15 @@ function getProductVersionsKeyboard(productId, productName, versions = []) {
 }
 
 /**
- * Info / News Keyboard with "View full" URL buttons
+ * Info / News Keyboard (titles are clickable links in text)
  */
-function getInfoKeyboard(posts = []) {
-  const rows = [];
-
-  posts.forEach((p, idx) => {
-    const label = posts.length === 1
-      ? '🔗 View full'
-      : `🔗 View full: ${p.title.length > 20 ? p.title.slice(0, 18) + '...' : p.title}`;
-    rows.push([Markup.button.url(label, p.url)]);
-  });
-
-  rows.push([
-    Markup.button.callback('🔄 Refresh Info', 'menu_info'),
-    Markup.button.callback('🏠 Main Menu', 'main_menu'),
+function getInfoKeyboard() {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback('🔄 Refresh Info', 'menu_info'),
+      Markup.button.callback('🏠 Main Menu', 'main_menu'),
+    ]
   ]);
-
-  return Markup.inlineKeyboard(rows);
 }
 
 module.exports = {

@@ -33,16 +33,18 @@ async function handleInfo(ctx) {
 
     posts.forEach((p, idx) => {
       const categoryTag = p.category ? `[${p.category.toUpperCase()}] ` : '';
-      text += `📢 *${idx + 1}. ${categoryTag}${p.title}*\n`;
+      const cleanTitle = p.title.replace(/[\[\]]/g, '');
+      text += `📢 *${idx + 1}.* [${categoryTag}${cleanTitle}](${p.url})\n`;
       text += `${p.short_description}\n\n`;
     });
 
-    const keyboard = getInfoKeyboard(posts);
+    const keyboard = getInfoKeyboard();
 
     if (ctx.callbackQuery) {
       try {
         return await ctx.editMessageText(text, {
           parse_mode: 'Markdown',
+          disable_web_page_preview: true,
           ...keyboard,
         });
       } catch (e) {
@@ -52,6 +54,7 @@ async function handleInfo(ctx) {
 
     await ctx.reply(text, {
       parse_mode: 'Markdown',
+      disable_web_page_preview: true,
       ...keyboard,
     });
   } catch (err) {

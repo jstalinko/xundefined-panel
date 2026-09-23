@@ -27,9 +27,15 @@ async function handleOrders(ctx) {
     orders.forEach((ord, idx) => {
       const statusIcon = ord.status === 'completed' ? '✅' : '⏳';
       const orderRef = ord.invoice || ord.order_number || '-';
+      const isTopup = orderRef.startsWith('TOPUP-')
+        || (ord.order_number && ord.order_number.startsWith('TOPUP-'))
+        || ord.product_name === 'TOPUP BALANCE'
+        || ord.product_name === 'Unknown Script'
+        || (ord.product_name && ord.product_name.toLowerCase().includes('topup'));
+      const productName = isTopup ? 'TOPUP BALANCE' : (ord.product_name || 'Website Script');
       const paymentMethod = ord.payment_method || ord.payment_currency || 'Balance';
       text += `*${idx + 1}. Order:* \`${orderRef}\`\n`;
-      text += `• *Product:* ${ord.product_name}\n`;
+      text += `• *Product:* ${productName}\n`;
       text += `• *Payment Method:* \`${paymentMethod}\`\n`;
       text += `• *Amount:* *$${Number(ord.amount).toFixed(2)} USD*\n`;
       text += `• *Status:* ${statusIcon} \`${ord.status.toUpperCase()}\`\n`;

@@ -164,10 +164,12 @@ class TelegramBotAndLegacyTest extends TestCase
         $txnId = $topupRes->json('transaction.txn_id');
         $this->assertNotEmpty($invoice);
         $this->assertNotEmpty($txnId);
+        $this->assertStringStartsWith('TOPUP-', $invoice);
 
         $order = Order::where('invoice', $invoice)->first();
         $this->assertNotNull($order);
         $this->assertNull($order->product_id); // Topup has no product_id
+        $this->assertStringStartsWith('TOPUP-', $order->order_number);
         $this->assertEquals(50, (float) $order->price);
         $this->assertTrue($order->isPending());
 
@@ -216,6 +218,16 @@ class TelegramBotAndLegacyTest extends TestCase
         $this->assertTrue($order->isCompleted());
         $user->refresh();
         $this->assertEquals(50.00, (float) $user->balance);
+
+        // Verify orders API returns TOPUP BALANCE and downloads excludes topups
+        $ordersResponse = $this->getJson('/api/telegram/orders?telegram_id=' . $uniqueId);
+        $ordersResponse->assertStatus(200);
+        $this->assertCount(1, $ordersResponse->json('orders'));
+        $this->assertEquals('TOPUP BALANCE', $ordersResponse->json('orders.0.product_name'));
+
+        $downResponse = $this->getJson('/api/telegram/downloads?telegram_id=' . $uniqueId);
+        $downResponse->assertStatus(200);
+        $this->assertCount(0, $downResponse->json('downloads'));
     }
 
     public function test_telegram_domain_management(): void

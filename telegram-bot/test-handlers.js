@@ -200,8 +200,8 @@ async function testHandlers() {
   console.log('\n--- 10. Testing Orders Handler ---');
   await handleOrders(mockCtx);
   console.log('Orders Output:\n', lastOutput.text);
-  if (!lastOutput.text.includes('XUOR-')) {
-    throw new Error('Orders must show order number or invoice with prefix XUOR-!');
+  if (!lastOutput.text.includes('XUOR-') && !lastOutput.text.includes('TOPUP-')) {
+    throw new Error('Orders must show order number or invoice with prefix XUOR- or TOPUP-!');
   }
   if (!lastOutput.text.includes('Payment Method:')) {
     throw new Error('Orders must show Payment Method!');
@@ -257,19 +257,25 @@ async function testHandlers() {
   }
   console.log('Found Profile Help Button:', profileHelpBtn.text, '->', profileHelpBtn.url);
 
-  // 15. Test Info Handler (Posts/News from DB, short description, View Full button)
+  // 15. Test Info Handler (Posts/News from DB with title links, no View full button)
   console.log('\n--- 15. Testing Info Handler (Posts/News from DB) ---');
   await handleInfo(mockCtx);
   console.log('Info Output:\n', lastOutput.text);
   if (!lastOutput.text.includes('INFORMATION & NEWS') && !lastOutput.text.includes('Information & Announcements')) {
     throw new Error('Info handler must display information & news header!');
   }
-  const infoButtons = lastOutput.extra.reply_markup.inline_keyboard.flat();
-  const viewFullBtn = infoButtons.find(b => b.url && b.url.includes('/news/'));
-  if (!viewFullBtn) {
-    throw new Error('Info handler must include "View full" URL button leading to post URL!');
+  if (!lastOutput.text.includes('](') || (!lastOutput.text.includes('/news/') && !lastOutput.text.includes('http'))) {
+    throw new Error('Info titles must be formatted as markdown links to news URL!');
   }
-  console.log('Found Info "View full" Button:', viewFullBtn.text, '->', viewFullBtn.url);
+  const infoButtons = lastOutput.extra.reply_markup.inline_keyboard.flat();
+  const viewFullBtn = infoButtons.find(b => b.text && b.text.includes('View full'));
+  if (viewFullBtn) {
+    throw new Error('Info handler must NOT include "View full" URL button anymore; title must be a link!');
+  }
+  if (!lastOutput.extra.disable_web_page_preview) {
+    throw new Error('Info handler must set disable_web_page_preview: true!');
+  }
+  console.log('Info verified: titles are clickable links, "View full" button removed.');
 
   console.log('\n✅ ALL 15 HANDLER TESTS PASSED WITH 100% COMPLIANCE!');
 }

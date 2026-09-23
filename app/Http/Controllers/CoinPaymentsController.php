@@ -109,7 +109,7 @@ class CoinPaymentsController extends Controller
             $invoice = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
         } else {
             $amount = (float) $request->input('amount');
-            $invoice = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $invoice = 'TOPUP-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
             $itemName = "Balance Topup #{$invoice}";
         }
 

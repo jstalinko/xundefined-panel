@@ -50,12 +50,20 @@ class Order extends Model
     protected static function booted(): void
     {
         static::creating(function (Order $order) {
-            $xuorCode = 'XUOR-' . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $isTopup = empty($order->product_id) && (
+                stripos((string)$order->notes, 'topup') !== false ||
+                stripos((string)$order->notes, 'balance') !== false ||
+                stripos((string)$order->invoice, 'TOPUP') !== false ||
+                stripos((string)$order->order_number, 'TOPUP') !== false
+            );
+            $prefix = $isTopup ? 'TOPUP-' : 'XUOR-';
+            $generatedCode = $prefix . date('dmYHi') . '-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+
             if (empty($order->order_number)) {
-                $order->order_number = $xuorCode;
+                $order->order_number = $generatedCode;
             }
             if (empty($order->invoice)) {
-                $order->invoice = $xuorCode;
+                $order->invoice = $generatedCode;
             }
             if (empty($order->amount) && !empty($order->price)) {
                 $order->amount = $order->price;

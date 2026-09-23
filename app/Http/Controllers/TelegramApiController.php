@@ -280,6 +280,7 @@ class TelegramApiController extends Controller
 
         $downloads = Order::where('user_id', $user->id)
             ->where('status', 'completed')
+            ->whereNotNull('product_id')
             ->with('product')
             ->orderBy('id', 'desc')
             ->get()
@@ -436,11 +437,16 @@ class TelegramApiController extends Controller
             ->get()
             ->map(function ($order) {
                 $payment = $order->payment_currency ?: ($order->payment_method ?: 'Balance');
+                $isTopup = str_starts_with((string) $order->invoice, 'TOPUP-')
+                    || str_starts_with((string) $order->order_number, 'TOPUP-')
+                    || empty($order->product_id);
+                $productName = $order->product ? $order->product->name : ($isTopup ? 'TOPUP BALANCE' : 'Unknown Script');
+
                 return [
                     'id' => $order->id,
                     'order_number' => $order->order_number,
                     'invoice' => $order->invoice,
-                    'product_name' => $order->product ? $order->product->name : 'Unknown Script',
+                    'product_name' => $productName,
                     'amount' => (float) ($order->amount ?? $order->price),
                     'payment_method' => $payment,
                     'payment_currency' => $order->payment_currency,
