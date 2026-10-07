@@ -49,7 +49,7 @@ class TelegramService
             'disable_web_page_preview' => false,
         ];
 
-        if ($parseMode !== null) {
+        if ($parseMode !== null && strtolower($parseMode) !== 'plain') {
             $payload['parse_mode'] = $parseMode;
         }
 
@@ -88,6 +88,155 @@ class TelegramService
             ]);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Send a photo message with optional caption and inline keyboard via Telegram Bot API.
+     */
+    public function sendPhoto(
+        string|int $chatId,
+        string $photoUrlOrPath,
+        ?string $caption = null,
+        ?array $replyMarkup = null,
+        ?string $parseMode = 'Markdown'
+    ): array {
+        if (empty($this->botToken) || $this->botToken === 'dummy:token') {
+            Log::warning('TelegramService: Telegram bot token not configured or dummy, skipped sendPhoto.');
+            return ['ok' => false, 'error' => 'Bot token not configured'];
+        }
+
+        $url = "https://api.telegram.org/bot{$this->botToken}/sendPhoto";
+
+        $payload = [
+            'chat_id' => $chatId,
+            'photo' => $photoUrlOrPath,
+        ];
+
+        if (!empty($caption)) {
+            $payload['caption'] = $caption;
+            if ($parseMode !== null && strtolower($parseMode) !== 'plain') {
+                $payload['parse_mode'] = $parseMode;
+            }
+        }
+
+        if (!empty($replyMarkup)) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        try {
+            $response = Http::timeout(15)->post($url, $payload);
+
+            // If formatting failed with 400, retry without parse_mode as safe fallback
+            if (!$response->successful() && !empty($payload['parse_mode'])) {
+                $errJson = $response->json();
+                if (isset($errJson['error_code']) && $errJson['error_code'] == 400) {
+                    Log::warning('TelegramService sendPhoto formatting failed, retrying plain text: ' . ($errJson['description'] ?? ''));
+                    unset($payload['parse_mode']);
+                    $response = Http::timeout(15)->post($url, $payload);
+                }
+            }
+
+            $data = $response->json();
+
+            if (!$response->successful()) {
+                Log::warning('TelegramService: Failed to send Telegram photo', [
+                    'chat_id' => $chatId,
+                    'status' => $response->status(),
+                    'response' => $data,
+                ]);
+            }
+
+            return is_array($data) ? $data : ['ok' => false, 'raw' => $response->body()];
+
+        } catch (Exception $e) {
+            Log::error('TelegramService: Exception during sendPhoto: ' . $e->getMessage(), [
+                'chat_id' => $chatId,
+            ]);
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Broadcast a message or photo to multiple Telegram chat IDs.
+     *
+     * @param array $recipients Array of chat IDs or array of ['chat_id' => ..., 'name' => ...]
+     * @param string $text Message text / caption
+     * @param string|null $parseMode Markdown, HTML, or plain
+     * @param array|null $replyMarkup Optional inline keyboard
+     * @param string|null $photoUrl Optional photo URL
+     * @param int|null $delayMicroseconds Sleep delay between messages in microseconds
+     * @return array Summary of broadcast execution
+     */
+    public function broadcast(
+        array $recipients,
+        string $text,
+        ?string $parseMode = 'Markdown',
+        ?array $replyMarkup = null,
+        ?string $photoUrl = null,
+        ?int $delayMicroseconds = null
+    ): array {
+        if ($delayMicroseconds === null) {
+            $delayMicroseconds = app()->environment('testing') ? 0 : 40000;
+        }
+
+        $results = [];
+        $successful = 0;
+        $failed = 0;
+
+        foreach ($recipients as $item) {
+            $rawId = is_array($item) ? ($item['chat_id'] ?? ($item['telegram_id'] ?? null)) : $item;
+            $chatId = $this->resolveToNumericChatId((string) $rawId);
+            $displayName = is_array($item) ? ($item['name'] ?? ($item['username'] ?? null)) : null;
+
+            if (empty($chatId)) {
+                $failed++;
+                $results[] = [
+                    'chat_id' => (string) ($rawId ?: 'unknown'),
+                    'name' => $displayName,
+                    'status' => 'failed',
+                    'error' => 'Invalid or empty Telegram chat ID',
+                ];
+                continue;
+            }
+
+            if (!empty($photoUrl)) {
+                $res = $this->sendPhoto($chatId, $photoUrl, $text, $replyMarkup, $parseMode);
+            } else {
+                $res = $this->sendMessage($chatId, $text, $replyMarkup, $parseMode);
+            }
+
+            $isOk = !empty($res['ok']);
+
+            if ($isOk) {
+                $successful++;
+                $results[] = [
+                    'chat_id' => (string) $chatId,
+                    'name' => $displayName,
+                    'status' => 'sent',
+                    'message_id' => $res['result']['message_id'] ?? null,
+                ];
+            } else {
+                $failed++;
+                $errorMsg = $res['description'] ?? ($res['error'] ?? 'Delivery failed');
+                $results[] = [
+                    'chat_id' => (string) $chatId,
+                    'name' => $displayName,
+                    'status' => 'failed',
+                    'error' => $errorMsg,
+                ];
+            }
+
+            if ($delayMicroseconds > 0 && count($recipients) > 1) {
+                usleep($delayMicroseconds);
+            }
+        }
+
+        return [
+            'total' => count($recipients),
+            'successful' => $successful,
+            'failed' => $failed,
+            'details' => $results,
+        ];
     }
 
     /**

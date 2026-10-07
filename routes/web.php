@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BlastMessageController;
 use App\Http\Controllers\CoinPaymentsController;
 use App\Http\Controllers\InviteCodeController;
 use App\Http\Controllers\OrderController;
@@ -60,4 +61,11 @@ Route::group(['prefix' => 'xingzheng-panel', 'middleware' => ['auth', 'admin']],
     Route::get('/invitecode/generate-random', [InviteCodeController::class, 'generateRandom'])->name('invitecode.random');
     Route::resource('/invitecode', InviteCodeController::class);
     Route::resource('/user', UserController::class);
+
+    // Blast Message (Telegram Broadcast to users by chat_id)
+    Route::get('/blast-message', [BlastMessageController::class, 'index'])->name('admin.blast-message');
+    Route::post('/blast-message/send', [BlastMessageController::class, 'send'])->name('admin.blast-message.send');
+    Route::get('/blast-message/recipients-preview', [BlastMessageController::class, 'previewRecipients'])->name('admin.blast-message.preview');
+    Route::get('/blast-message/{id}', [BlastMessageController::class, 'show'])->name('admin.blast-message.show');
+    Route::delete('/blast-message/{id}', [BlastMessageController::class, 'destroy'])->name('admin.blast-message.destroy');
 });

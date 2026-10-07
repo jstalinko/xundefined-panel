@@ -116,4 +116,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Invitecode::class, 'used_by_user_id');
     }
+
+    public function blastMessages()
+    {
+        return $this->hasMany(BlastMessage::class)->latest();
+    }
 }

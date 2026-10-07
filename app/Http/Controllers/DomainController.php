@@ -13,12 +13,12 @@ class DomainController extends Controller
 {
     /**
      * Handle the incoming domain validation request.
-     * 
+     *
      * Retrieve POST input:
      * - account_key
      * - domain
      * - pid (product)
-     * 
+     *
      * Logic flow:
      * 1. Check User from account_key.
      * 2. Check orders where user_id and pid.
@@ -27,7 +27,7 @@ class DomainController extends Controller
      *    - If does not exist: check domain_quota from orders.
      *      - If limit exceeded: return error.
      *      - Else: register/add domain and return response success.
-     * 
+     *
      * JSON Response format:
      * "success" => true/false, "status" => "OK/FAILED", "message" => response message
      */
@@ -52,6 +52,7 @@ class DomainController extends Controller
                 'success' => false,
                 'status' => 'FAILED',
                 'message' => 'User not found or invalid account key.',
+                'account_key' => $accountKey
             ], 404);
         }
 
@@ -138,4 +139,3 @@ class DomainController extends Controller
         ]);
     }
 }
-

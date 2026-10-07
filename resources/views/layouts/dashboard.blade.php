@@ -130,6 +130,13 @@
                     </a>
                 </div>
 
+                <div class="cyber-nav-item">
+                    <a href="{{ route('admin.blast-message') }}" class="cyber-nav-link {{ request()->routeIs('admin.blast-message*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <span>Blast Message</span>
+                    </a>
+                </div>
+
                 <div class="nav-section-title">OUR LINKS</div>
 
                 <div class="cyber-nav-item">
