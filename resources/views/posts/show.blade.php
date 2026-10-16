@@ -512,7 +512,7 @@
 
                 {{-- Content Body --}}
                 <div class="article-body-content">
-                    {!! nl2br(e($post->content)) !!}
+                    {!! $post->content !!}
                 </div>
 
                 {{-- Article Actions Footer --}}
