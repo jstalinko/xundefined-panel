@@ -86,7 +86,7 @@ class CoinPaymentsController extends Controller
 
         $product = null;
         if (!$isTopup) {
-            $product = Product::where('active', true)->findOrFail($request->input('product_id'));
+            $product = Product::where('active', true)->where('published', true)->findOrFail($request->input('product_id'));
 
             // Check if user already owns this product
             $existingOrder = Order::where('user_id', $user->id)

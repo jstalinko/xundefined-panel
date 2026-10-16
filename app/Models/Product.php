@@ -48,6 +48,14 @@ class Product extends Model
                 $product->published = true;
             }
         });
+
+        static::updating(function (Product $product) {
+            if ($product->isDirty('active') && !$product->isDirty('status')) {
+                $product->status = $product->active ? 'active' : 'inactive';
+            } elseif ($product->isDirty('status') && !$product->isDirty('active')) {
+                $product->active = $product->status === 'active';
+            }
+        });
     }
 
     /**

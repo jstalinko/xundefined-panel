@@ -55,6 +55,7 @@ class AdminController extends Controller
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
+            'telegram_id' => ['nullable', 'string', 'max:64'],
         ];
 
         if ($request->filled('password')) {
@@ -74,6 +75,9 @@ class AdminController extends Controller
         ]);
 
         $user->name = $validated['name'];
+        if ($request->has('telegram_id')) {
+            $user->telegram_id = trim((string) $validated['telegram_id']) ?: null;
+        }
         if ($request->filled('password')) {
             $user->password = Hash::make($validated['password']);
         }

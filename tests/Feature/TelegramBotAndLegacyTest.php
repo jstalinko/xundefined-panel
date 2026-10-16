@@ -373,5 +373,38 @@ class TelegramBotAndLegacyTest extends TestCase
         $downRes->assertStatus(200);
         $downRes->assertDownload($expectedFile);
     }
+
+    public function test_api_products_only_returns_published_products(): void
+    {
+        $publishedProduct = Product::create([
+            'name' => 'Published Script',
+            'price' => 50,
+            'status' => 'active',
+            'active' => true,
+            'published' => true,
+        ]);
+
+        $unpublishedProduct = Product::create([
+            'name' => 'Draft Script',
+            'price' => 50,
+            'status' => 'active',
+            'active' => true,
+            'published' => false,
+        ]);
+
+        $res = $this->getJson('/api/telegram/products');
+        $res->assertStatus(200);
+        $ids = collect($res->json('products'))->pluck('id')->all();
+        $this->assertContains($publishedProduct->id, $ids);
+        $this->assertNotContains($unpublishedProduct->id, $ids);
+
+        // Detail endpoint should return 404 for unpublished product
+        $this->getJson("/api/telegram/products/{$publishedProduct->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('product.id', $publishedProduct->id);
+
+        $this->getJson("/api/telegram/products/{$unpublishedProduct->id}")
+            ->assertStatus(404);
+    }
 }
 

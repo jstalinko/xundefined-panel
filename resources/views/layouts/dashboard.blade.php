@@ -103,6 +103,13 @@
                 </div>
 
                 <div class="cyber-nav-item">
+                    <a href="{{ route('domain.index') }}" class="cyber-nav-link {{ request()->routeIs('domain*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-globe"></i>
+                        <span>Domains</span>
+                    </a>
+                </div>
+
+                <div class="cyber-nav-item">
                     <a href="{{ route('order.index') }}" class="cyber-nav-link {{ request()->routeIs('order*') ? 'active' : '' }}">
                         <i class="fa-solid fa-cart-shopping"></i>
                         <span>Orders</span>
@@ -257,6 +264,21 @@
                             class="cyber-input" 
                             value="{{ auth()->user()?->name ?? '' }}"
                             required
+                        >
+                    </div>
+
+                    {{-- Telegram Chat ID --}}
+                    <div class="cyber-form-group" style="margin-top: 14px;">
+                        <label class="cyber-label" for="profileTelegramIdInput">
+                            <i class="fa-brands fa-telegram"></i> TELEGRAM CHAT ID (OPTIONAL)
+                        </label>
+                        <input 
+                            type="text" 
+                            id="profileTelegramIdInput" 
+                            name="telegram_id" 
+                            class="cyber-input" 
+                            placeholder="e.g. 555123456"
+                            value="{{ (auth()->user()?->telegram_id && auth()->user()?->telegram_id !== '123456789') ? auth()->user()?->telegram_id : '' }}"
                         >
                     </div>
 

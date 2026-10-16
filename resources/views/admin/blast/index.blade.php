@@ -202,6 +202,9 @@
             </div>
 
             {{-- Test Chat ID Box (Hidden by default) --}}
+            @php
+                $realAdminChatId = (!empty($user->telegram_id) && $user->telegram_id !== '123456789') ? $user->telegram_id : '';
+            @endphp
             <div class="cyber-form-group" id="testChatIdBox" style="display: {{ old('target_audience') === 'test' ? 'block' : 'none' }}; margin-bottom: 18px; background: rgba(0,0,0,0.25); border: 1px dashed rgba(72, 202, 228, 0.4); padding: 14px; border-radius: 4px;">
                 <label class="cyber-label" for="testChatIdInput">
                     <i class="fa-solid fa-vial"></i> TEST TELEGRAM CHAT ID *
@@ -210,12 +213,22 @@
                     type="text" 
                     name="test_chat_id" 
                     id="testChatIdInput" 
+                    list="subscribersChatIdList"
                     class="cyber-input" 
-                    placeholder="Enter your chat ID, e.g. 123456789"
-                    value="{{ old('test_chat_id', $user->telegram_id ?? '') }}"
+                    placeholder="Enter Telegram Chat ID or @username (e.g. 555123456)"
+                    value="{{ old('test_chat_id', $realAdminChatId) }}"
                 >
+                @if (!empty($subscribers) && count($subscribers) > 0)
+                    <datalist id="subscribersChatIdList">
+                        @foreach ($subscribers as $sub)
+                            @if ($sub->telegram_id !== '123456789')
+                                <option value="{{ $sub->telegram_id }}">{{ $sub->name }}{{ $sub->telegram_username ? ' (@' . ltrim($sub->telegram_username, '@') . ')' : '' }}</option>
+                            @endif
+                        @endforeach
+                    </datalist>
+                @endif
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono);">
-                    Your current account chat ID is: <span style="color: #48cae4;">{{ $user->telegram_id ?: 'Not linked' }}</span>.
+                    Your current account chat ID is: <span style="color: #48cae4;">{{ $realAdminChatId ?: 'Not linked (enter your Telegram Chat ID above)' }}</span>.
                 </div>
             </div>
 
@@ -480,7 +493,7 @@
 </div>
 
 {{-- Confirmation Modal before Dispatching --}}
-<div class="cyber-modal-backdrop" id="blastConfirmModal" style="display: none;">
+<div class="cyber-modal-backdrop" id="blastConfirmModal">
     <div class="cyber-modal-window" style="max-width: 520px;">
         <div class="cyber-corner top-left"></div>
         <div class="cyber-corner top-right"></div>
@@ -539,7 +552,7 @@
 </div>
 
 {{-- Blast Log Details Modal --}}
-<div class="cyber-modal-backdrop" id="blastDetailsModal" style="display: none;">
+<div class="cyber-modal-backdrop" id="blastDetailsModal">
     <div class="cyber-modal-window" style="max-width: 720px;">
         <div class="cyber-corner top-left"></div>
         <div class="cyber-corner top-right"></div>
@@ -705,15 +718,21 @@
         }
 
         const sel = document.getElementById('targetAudienceSelect');
+        const wasAlreadyTest = sel.value === 'test';
         sel.value = 'test';
         handleAudienceChange();
 
-        const testChatId = document.getElementById('testChatIdInput').value.trim();
-        if (!testChatId) {
-            const promptId = prompt('Enter Telegram Chat ID to send test message to:');
-            if (promptId) {
-                document.getElementById('testChatIdInput').value = promptId.trim();
+        const testInput = document.getElementById('testChatIdInput');
+        let testChatId = testInput.value.trim();
+
+        if (!testChatId || testChatId === '123456789' || !wasAlreadyTest) {
+            const defaultVal = (testChatId && testChatId !== '123456789') ? testChatId : '';
+            const promptId = prompt('Enter Telegram Chat ID (or @username) to send test message to:', defaultVal);
+            if (promptId && promptId.trim()) {
+                testInput.value = promptId.trim();
+                testChatId = promptId.trim();
             } else {
+                testInput.focus();
                 return;
             }
         }
@@ -731,12 +750,33 @@
         }
 
         const sel = document.getElementById('targetAudienceSelect');
-        const targetText = sel.options[sel.selectedIndex].text;
+        const audienceVal = sel.value;
+
+        if (audienceVal === 'test') {
+            const testInput = document.getElementById('testChatIdInput');
+            const testChatId = testInput.value.trim();
+            if (!testChatId) {
+                alert('Please enter a Telegram Chat ID or @username for the test broadcast.');
+                testInput.focus();
+                return;
+            }
+        } else if (audienceVal === 'custom') {
+            const customInput = document.getElementById('customChatIdsInput');
+            if (!customInput.value.trim()) {
+                alert('Please enter at least one Custom Telegram Chat ID.');
+                customInput.focus();
+                return;
+            }
+        }
+
+        const targetText = sel.options[sel.selectedIndex].text.trim();
         const parseMode = document.getElementById('parseModeSelect').value;
         const imageUrl = document.getElementById('blastImageUrl').value.trim();
         const buttonText = document.getElementById('blastButtonText').value.trim();
 
-        document.getElementById('confirmTargetName').textContent = targetText;
+        document.getElementById('confirmTargetName').textContent = audienceVal === 'test'
+            ? `Test (${document.getElementById('testChatIdInput').value.trim()})`
+            : targetText;
         document.getElementById('confirmRecipientsCount').textContent = document.getElementById('targetCountBadge').textContent;
         document.getElementById('confirmParseMode').textContent = parseMode;
 
@@ -745,11 +785,15 @@
         if (buttonText) attachDesc.push(`Button: "${buttonText}"`);
         document.getElementById('confirmAttachments').textContent = attachDesc.length > 0 ? attachDesc.join(', ') : 'None';
 
-        document.getElementById('blastConfirmModal').style.display = 'flex';
+        const modal = document.getElementById('blastConfirmModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
 
     function closeBlastConfirmModal() {
-        document.getElementById('blastConfirmModal').style.display = 'none';
+        const modal = document.getElementById('blastConfirmModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     function submitBlastForm() {
@@ -798,7 +842,9 @@
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No individual recipient logs recorded.</td></tr>';
                 }
 
-                document.getElementById('blastDetailsModal').style.display = 'flex';
+                const modal = document.getElementById('blastDetailsModal');
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
             })
             .catch(err => {
                 alert('Failed to load blast details: ' + err.message);
@@ -806,10 +852,12 @@
     }
 
     function closeBlastDetailsModal() {
-        document.getElementById('blastDetailsModal').style.display = 'none';
+        const modal = document.getElementById('blastDetailsModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
-    // Close modals on clicking backdrop
+    // Close modals on clicking backdrop or Escape key
     window.addEventListener('click', function(e) {
         if (e.target === document.getElementById('blastConfirmModal')) {
             closeBlastConfirmModal();
@@ -819,8 +867,16 @@
         }
     });
 
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeBlastConfirmModal();
+            closeBlastDetailsModal();
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         updateCharCount();
+        handleAudienceChange();
     });
 </script>
 @endpush

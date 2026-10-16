@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BlastMessageController;
 use App\Http\Controllers\CoinPaymentsController;
+use App\Http\Controllers\DomainController;
 use App\Http\Controllers\InviteCodeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PostController;
@@ -56,6 +57,7 @@ Route::group(['prefix' => 'xingzheng-panel', 'middleware' => ['auth', 'admin']],
     Route::put('/profile', [AdminController::class, 'updateProfile'])->name('dashboard.profile.update');
     Route::patch('/product/{id}/toggle-publish', [ProductController::class, 'togglePublish'])->name('product.toggle-publish');
     Route::resource('/product', ProductController::class);
+    Route::resource('/domain', DomainController::class);
     Route::resource('/order', OrderController::class);
     Route::resource('/post', PostController::class);
     Route::get('/invitecode/generate-random', [InviteCodeController::class, 'generateRandom'])->name('invitecode.random');

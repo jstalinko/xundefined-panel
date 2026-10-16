@@ -343,4 +343,32 @@ class BlastMessageTest extends TestCase
 
         $response->assertSessionHasErrors(['message', 'target_audience']);
     }
+
+    public function test_admin_can_send_test_broadcast_using_fallback_and_auto_link_chat_id(): void
+    {
+        Http::fake([
+            'https://api.telegram.org/bot*/sendMessage' => Http::response([
+                'ok' => true,
+                'result' => ['message_id' => 7788],
+            ], 200),
+        ]);
+
+        // Fallback to admin's own telegram_id when test_chat_id is omitted
+        $response = $this->actingAs($this->admin)->post('/xingzheng-panel/blast-message/send', [
+            'message' => 'Fallback test broadcast message.',
+            'target_audience' => 'test',
+        ]);
+        $response->assertRedirect('/xingzheng-panel/blast-message');
+        $response->assertSessionHas('status');
+
+        // Auto-save real chat_id if admin had placeholder 123456789
+        $this->admin->update(['telegram_id' => '123456789']);
+        $this->actingAs($this->admin)->post('/xingzheng-panel/blast-message/send', [
+            'message' => 'Linking real chat ID on test.',
+            'target_audience' => 'test',
+            'test_chat_id' => '998877665',
+        ])->assertRedirect('/xingzheng-panel/blast-message');
+
+        $this->assertEquals('998877665', $this->admin->fresh()->telegram_id);
+    }
 }

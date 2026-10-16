@@ -228,7 +228,7 @@
     @endif
 </div>
 
-{{-- Section 2: All Registered Domains with User Email --}}
+{{-- Section 2: All Registered Domains with User Email & Telegram --}}
 <div class="cyber-panel" style="margin-top: 24px;">
     <div class="cyber-panel-header">
         <div class="cyber-panel-title">
@@ -240,6 +240,9 @@
                 <span class="status-dot online"></span>
                 <span>{{ $allDomains->count() }} DOMAINS TOTAL</span>
             </span>
+            <a href="{{ route('domain.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+                <i class="fa-solid fa-arrow-right"></i> VIEW ALL DOMAINS
+            </a>
         </div>
     </div>
 
@@ -256,10 +259,11 @@
                     <tr>
                         <th style="width: 50px;">#</th>
                         <th>DOMAIN NAME</th>
+                        <th>TELEGRAM / OWNER</th>
                         <th>BOUND PRODUCT</th>
-                        <th>USER / OWNER EMAIL</th>
                         <th>STATUS</th>
                         <th>REGISTERED DATE</th>
+                        <th style="text-align: right;">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -286,6 +290,23 @@
                                 </div>
                             </td>
                             <td>
+                                @if ($dom->user && $dom->user->telegram_username)
+                                    <a href="https://t.me/{{ ltrim($dom->user->telegram_username, '@') }}" target="_blank" rel="noopener noreferrer" style="color: #48cae4; font-family: var(--font-mono); font-size: 0.78rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa-brands fa-telegram"></i> t.me/{{ ltrim($dom->user->telegram_username, '@') }}
+                                    </a>
+                                @elseif ($dom->user && $dom->user->telegram_id)
+                                    <a href="https://t.me/{{ $dom->user->telegram_id }}" target="_blank" rel="noopener noreferrer" style="color: #48cae4; font-family: var(--font-mono); font-size: 0.78rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa-brands fa-telegram"></i> t.me/{{ $dom->user->telegram_id }}
+                                    </a>
+                                @endif
+                                <div style="color: #ffffff; font-weight: 600; font-size: 0.82rem;">
+                                    {{ $dom->user->name ?? 'User #' . $dom->user_id }}
+                                </div>
+                                <div style="color: #00ff66; font-family: var(--font-mono); font-size: 0.73rem;">
+                                    <i class="fa-solid fa-envelope" style="font-size: 0.68rem;"></i> {{ $dom->user->email ?? 'N/A' }}
+                                </div>
+                            </td>
+                            <td>
                                 @if ($dom->product)
                                     <span class="badge-status b-ok" style="font-size: 0.72rem;">
                                         <i class="fa-solid fa-cube"></i> {{ $dom->product->name }}
@@ -297,21 +318,18 @@
                                 @endif
                             </td>
                             <td>
-                                <div style="color: #ffffff; font-weight: 600; font-size: 0.86rem;">
-                                    {{ $dom->user->name ?? 'User #' . $dom->user_id }}
-                                </div>
-                                <div style="color: #00ff66; font-family: var(--font-mono); font-size: 0.75rem;">
-                                    <i class="fa-solid fa-envelope" style="font-size: 0.68rem;"></i> {{ $dom->user->email ?? 'N/A' }}
-                                </div>
-                            </td>
-                            <td>
                                 <span class="badge-status b-ok">
                                     <span class="status-dot online"></span>
-                                    ACTIVE
+                                    {{ strtoupper($dom->status ?: 'ACTIVE') }}
                                 </span>
                             </td>
                             <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.76rem;">
                                 {{ $dom->created_at ? $dom->created_at->format('Y-m-d H:i') : 'N/A' }}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{{ route('domain.show', $dom->id) }}" class="cyber-btn cyber-btn-secondary cyber-btn-xs" title="View Domain Details">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </a>
                             </td>
                         </tr>
                     @endforeach

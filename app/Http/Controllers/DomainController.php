@@ -7,10 +7,132 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class DomainController extends Controller
 {
+    /**
+     * Display a listing of all registered domains for admin.
+     */
+    public function index(Request $request): View
+    {
+        $user = Auth::user();
+        $search = $request->query('q');
+        $statusFilter = $request->query('status');
+
+        $query = Domain::with(['user', 'product', 'order'])->latest();
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('domain', 'like', '%' . $search . '%')
+                  ->orWhere('ip_address', 'like', '%' . $search . '%')
+                  ->orWhere('status', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', '%' . $search . '%')
+                         ->orWhere('email', 'like', '%' . $search . '%')
+                         ->orWhere('telegram_username', 'like', '%' . $search . '%')
+                         ->orWhere('telegram_id', 'like', '%' . $search . '%')
+                         ->orWhere('account_key', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('product', function ($pq) use ($search) {
+                      $pq->where('name', 'like', '%' . $search . '%')
+                         ->orWhere('pid', 'like', '%' . $search . '%')
+                         ->orWhere('slug', 'like', '%' . $search . '%');
+                  });
+
+                if (is_numeric($search)) {
+                    $q->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        if ($statusFilter !== null && $statusFilter !== '') {
+            $query->where('status', $statusFilter);
+        }
+
+        $domains = $query->paginate(15)->withQueryString();
+
+        $stats = [
+            'total' => Domain::count(),
+            'active' => Domain::where('status', 'active')->count(),
+            'inactive' => Domain::where('status', '!=', 'active')->count(),
+            'total_hits' => (int) Domain::sum('hits'),
+        ];
+
+        return view('admin.domain.index', compact('user', 'domains', 'search', 'statusFilter', 'stats'));
+    }
+
+    /**
+     * Display the specified domain details.
+     */
+    public function show(Request $request, string $id): View|JsonResponse
+    {
+        $user = Auth::user();
+        $domain = Domain::with(['user', 'product', 'order'])->findOrFail($id);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'domain' => $domain,
+            ]);
+        }
+
+        return view('admin.domain.show', compact('user', 'domain'));
+    }
+
+    /**
+     * Update domain parameters (domain hostname, status, ip_address).
+     */
+    public function update(Request $request, string $id): RedirectResponse
+    {
+        $domain = Domain::findOrFail($id);
+
+        $validated = $request->validate([
+            'domain' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'string', 'in:active,inactive,suspended'],
+            'ip_address' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $updateData = [
+            'status' => $validated['status'],
+        ];
+
+        if (!empty($validated['domain'])) {
+            $cleanDomain = strtolower(trim($validated['domain']));
+            $cleanDomain = preg_replace('/^https?:\/\//i', '', $cleanDomain);
+            $cleanDomain = explode('/', $cleanDomain)[0];
+            $cleanDomain = explode(':', $cleanDomain)[0];
+            if (!empty($cleanDomain)) {
+                $updateData['domain'] = $cleanDomain;
+            }
+        }
+
+        if ($request->has('ip_address')) {
+            $updateData['ip_address'] = $validated['ip_address'] ? trim($validated['ip_address']) : null;
+        }
+
+        $domain->update($updateData);
+
+        return redirect()->back()
+            ->with('status', "Domain '{$domain->domain}' updated successfully!");
+    }
+
+    /**
+     * Remove the specified domain from storage.
+     */
+    public function destroy(string $id): RedirectResponse
+    {
+        $domain = Domain::findOrFail($id);
+        $domainName = $domain->domain;
+        $domain->delete();
+
+        return redirect()->route('domain.index')
+            ->with('status', "Domain '{$domainName}' has been deleted.");
+    }
+
     /**
      * Handle the incoming domain validation request.
      *
@@ -52,7 +174,6 @@ class DomainController extends Controller
                 'success' => false,
                 'status' => 'FAILED',
                 'message' => 'User not found or invalid account key.',
-                'account_key' => $accountKey
             ], 404);
         }
 

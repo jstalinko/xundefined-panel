@@ -71,7 +71,13 @@ class BlastMessageController extends Controller
 
         $blasts = $query->paginate(12)->withQueryString();
 
-        return view('admin.blast.index', compact('user', 'stats', 'blasts'));
+        $subscribers = User::whereNotNull('telegram_id')
+            ->where('telegram_id', '!=', '')
+            ->latest()
+            ->limit(50)
+            ->get(['id', 'name', 'telegram_id', 'telegram_username']);
+
+        return view('admin.blast.index', compact('user', 'stats', 'blasts', 'subscribers'));
     }
 
     /**
@@ -84,7 +90,7 @@ class BlastMessageController extends Controller
             'message' => 'required|string|max:4096',
             'target_audience' => 'required|in:all,members,admins,orders,custom,test',
             'custom_chat_ids' => 'required_if:target_audience,custom|nullable|string',
-            'test_chat_id' => 'required_if:target_audience,test|nullable|string',
+            'test_chat_id' => 'nullable|string',
             'parse_mode' => 'nullable|in:Markdown,HTML,plain',
             'button_text' => 'nullable|string|max:64',
             'button_url' => 'nullable|url|max:255',
@@ -152,12 +158,13 @@ class BlastMessageController extends Controller
                 return !empty($t) ? ['chat_id' => $t, 'name' => 'Custom ID: ' . $t] : null;
             }, preg_split('/[\r\n,]+/', (string) ($validated['custom_chat_ids'] ?? ''))))),
 
-            'test' => [
-                [
-                    'chat_id' => trim($validated['test_chat_id'] ?: (auth()->user()?->telegram_id ?? '')),
+            'test' => array_values(array_filter(array_map(function ($item) {
+                $t = trim($item);
+                return !empty($t) ? [
+                    'chat_id' => $t,
                     'name' => 'Test: ' . (auth()->user()?->name ?? 'Admin'),
-                ],
-            ],
+                ] : null;
+            }, preg_split('/[\r\n,]+/', (string) (trim($validated['test_chat_id'] ?? '') ?: (auth()->user()?->telegram_id ?? '')))))),
 
             default => [],
         };
@@ -176,7 +183,7 @@ class BlastMessageController extends Controller
         if (empty($uniqueRecipients)) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'No eligible Telegram recipients found for target audience: ' . ucfirst($targetAudience));
+                ->with('error', 'No eligible Telegram recipients found for target audience: ' . ucfirst($targetAudience) . '. Please enter a valid Telegram Chat ID.');
         }
 
         // Prepare optional reply markup
@@ -202,6 +209,15 @@ class BlastMessageController extends Controller
             $replyMarkup,
             $validated['image_url'] ?? null
         );
+
+        // If a test broadcast succeeded and admin's telegram_id was unlinked or placeholder, save it
+        if ($targetAudience === 'test' && $result['successful'] > 0 && auth()->check()) {
+            $currentUser = auth()->user();
+            $firstSent = collect($result['details'])->firstWhere('status', 'sent');
+            if ($firstSent && !empty($firstSent['chat_id']) && (empty($currentUser->telegram_id) || $currentUser->telegram_id === '123456789')) {
+                $currentUser->update(['telegram_id' => (string) $firstSent['chat_id']]);
+            }
+        }
 
         $status = 'completed';
         if ($result['successful'] === 0 && $result['failed'] > 0) {
@@ -251,8 +267,12 @@ class BlastMessageController extends Controller
         }
 
         if ($result['successful'] === 0 && $result['failed'] > 0) {
+            $firstDetail = $result['details'][0] ?? [];
+            $errReason = $firstDetail['error'] ?? 'Unknown error';
+            $errChatId = $firstDetail['chat_id'] ?? '';
             return redirect()->route('admin.blast-message')
-                ->with('error', "Broadcast failed for all {$result['failed']} recipients. Check transmission logs for errors.");
+                ->withInput()
+                ->with('error', "Broadcast failed for all {$result['failed']} recipients" . ($errChatId ? " (Chat ID: {$errChatId})" : "") . ": {$errReason}. Ensure the recipient has started a chat with the bot (/start) and the Chat ID is valid.");
         }
 
         return redirect()->route('admin.blast-message')

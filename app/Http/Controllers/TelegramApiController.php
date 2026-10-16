@@ -103,6 +103,7 @@ class TelegramApiController extends Controller
     public function products(Request $request): JsonResponse
     {
         $products = Product::where('status', 'active')
+            ->where('published', true)
             ->orderBy('id', 'desc')
             ->get()
             ->map(function (Product $product) {
@@ -134,6 +135,7 @@ class TelegramApiController extends Controller
     public function productDetail(Request $request, $id): JsonResponse
     {
         $product = Product::where('status', 'active')
+            ->where('published', true)
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)->orWhere('slug', $id);
             })
@@ -187,6 +189,7 @@ class TelegramApiController extends Controller
 
         $product = Product::where('id', $validated['product_id'])
             ->where('status', 'active')
+            ->where('published', true)
             ->first();
 
         if (!$product) {

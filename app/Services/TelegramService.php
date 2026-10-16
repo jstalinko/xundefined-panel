@@ -368,6 +368,11 @@ class TelegramService
             return null;
         }
 
+        // Strip t.me URL prefix if provided
+        if (preg_match('#^(?:https?://)?t\.me/([a-zA-Z0-9_]+)$#i', $trimmed, $m)) {
+            $trimmed = '@' . $m[1];
+        }
+
         // If numeric or telegram group/channel ID (-100...)
         if (is_numeric($trimmed) || preg_match('/^-?\d+$/', $trimmed)) {
             return $trimmed;
@@ -375,16 +380,84 @@ class TelegramService
 
         // If username (with or without @)
         $cleanUsername = ltrim($trimmed, '@');
-        $user = User::where('telegram_username', $cleanUsername)
+        $user = User::where(function ($q) use ($cleanUsername) {
+                $q->where('telegram_username', $cleanUsername)
+                  ->orWhere('telegram_username', '@' . $cleanUsername);
+            })
             ->whereNotNull('telegram_id')
+            ->where('telegram_id', '!=', '')
+            ->where('telegram_id', '!=', '123456789')
             ->first();
 
         if ($user && !empty($user->telegram_id)) {
             return (string) $user->telegram_id;
         }
 
+        // In non-testing environment, check recent bot updates to see if this username messaged the bot
+        if (!app()->environment('testing')) {
+            $resolvedFromUpdates = $this->resolveUsernameFromBotUpdates($cleanUsername);
+            if ($resolvedFromUpdates) {
+                return $resolvedFromUpdates;
+            }
+        }
+
+        // Fallback to any matching user record even if seeded
+        $fallbackUser = User::where(function ($q) use ($cleanUsername) {
+                $q->where('telegram_username', $cleanUsername)
+                  ->orWhere('telegram_username', '@' . $cleanUsername);
+            })
+            ->whereNotNull('telegram_id')
+            ->where('telegram_id', '!=', '')
+            ->first();
+
+        if ($fallbackUser && !empty($fallbackUser->telegram_id)) {
+            return (string) $fallbackUser->telegram_id;
+        }
+
         // If no user record found, return with @ prefix for Telegram username target
         return '@' . $cleanUsername;
+    }
+
+    /**
+     * Query getUpdates on the bot to discover chat_id for a username that recently interacted with the bot.
+     */
+    public function resolveUsernameFromBotUpdates(string $cleanUsername): ?string
+    {
+        if (empty($this->botToken) || $this->botToken === 'dummy:token') {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(4)->get("https://api.telegram.org/bot{$this->botToken}/getUpdates", [
+                'limit' => 100,
+                'timeout' => 0,
+            ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $updates = $response->json('result') ?? [];
+            $foundChatId = null;
+
+            foreach ($updates as $update) {
+                $from = $update['message']['from']
+                    ?? ($update['callback_query']['from'] ?? ($update['my_chat_member']['from'] ?? null));
+                $chat = $update['message']['chat']
+                    ?? ($update['callback_query']['message']['chat'] ?? ($update['my_chat_member']['chat'] ?? null));
+
+                $chatId = $chat['id'] ?? ($from['id'] ?? null);
+                $uname = $from['username'] ?? ($chat['username'] ?? null);
+
+                if ($chatId && $uname && strcasecmp(ltrim($uname, '@'), $cleanUsername) === 0) {
+                    $foundChatId = (string) $chatId;
+                }
+            }
+
+            return $foundChatId;
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     /**

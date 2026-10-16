@@ -360,4 +360,58 @@ class AdminPanelTest extends TestCase
         $logoutResponse->assertRedirect('/login');
         $this->assertGuest();
     }
+
+    public function test_admin_can_manage_and_view_domains_list_and_details(): void
+    {
+        $owner = User::create([
+            'name' => 'Domain Operative',
+            'email' => 'domainop@user.local',
+            'password' => bcrypt('password123'),
+            'role' => 2,
+            'telegram_id' => '77665544',
+            'telegram_username' => 'domain_operative',
+            'account_key' => 'XU-DOM-OP',
+        ]);
+
+        $product = Product::first();
+
+        $domain = \App\Models\Domain::create([
+            'user_id' => $owner->id,
+            'product_id' => $product->id,
+            'domain' => 'node-alpha.xundefined.io',
+            'status' => 'active',
+            'ip_address' => '192.0.2.10',
+            'hits' => 15,
+        ]);
+
+        // 1. List Domains (/xingzheng-panel/domain)
+        $indexRes = $this->actingAs($this->admin)->get('/xingzheng-panel/domain');
+        $indexRes->assertStatus(200);
+        $indexRes->assertSee('REGISTERED DOMAINS DIRECTORY');
+        $indexRes->assertSee('node-alpha.xundefined.io');
+        $indexRes->assertSee('t.me/domain_operative');
+        $indexRes->assertSee($product->name);
+        $indexRes->assertSee($domain->created_at->format('Y-m-d H:i'));
+        $indexRes->assertSee('VIEW DETAILS');
+
+        // 2. View Domain Details (/xingzheng-panel/domain/{id})
+        $showRes = $this->actingAs($this->admin)->get('/xingzheng-panel/domain/' . $domain->id);
+        $showRes->assertStatus(200);
+        $showRes->assertSee('DOMAIN SPECIFICATIONS');
+        $showRes->assertSee('node-alpha.xundefined.io');
+        $showRes->assertSee('https://t.me/domain_operative');
+        $showRes->assertSee($product->name);
+        $showRes->assertSee('192.0.2.10');
+
+        // 3. Update Domain Status
+        $updateRes = $this->actingAs($this->admin)->put('/xingzheng-panel/domain/' . $domain->id, [
+            'domain' => 'node-alpha.xundefined.io',
+            'status' => 'suspended',
+        ]);
+        $updateRes->assertRedirect();
+        $this->assertDatabaseHas('domains', [
+            'id' => $domain->id,
+            'status' => 'suspended',
+        ]);
+    }
 }
