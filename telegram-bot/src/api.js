@@ -46,9 +46,10 @@ async function initUser(telegramUser) {
 /**
  * Get all available digital website script products
  */
-async function getProducts() {
+async function getProducts(telegramId = null) {
   try {
-    const response = await apiClient.get('/products');
+    const params = telegramId ? { telegram_id: String(telegramId) } : {};
+    const response = await apiClient.get('/products', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error, 'Failed to fetch products');
@@ -58,9 +59,10 @@ async function getProducts() {
 /**
  * Get product detail by ID or slug
  */
-async function getProduct(id) {
+async function getProduct(id, telegramId = null) {
   try {
-    const response = await apiClient.get(`/products/${id}`);
+    const params = telegramId ? { telegram_id: String(telegramId) } : {};
+    const response = await apiClient.get(`/products/${id}`, { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error, 'Failed to fetch product details');
@@ -270,14 +272,67 @@ async function downloadActivitiesTxt(telegramId) {
 }
 
 /**
- * Get published posts / news from database
+ * Get published posts / news from database (optionally filtered by category)
  */
-async function getPosts() {
+async function getPosts(category = null) {
   try {
-    const response = await apiClient.get('/posts');
+    const params = category ? { category: String(category) } : {};
+    const response = await apiClient.get('/posts', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error, 'Failed to fetch posts/news');
+  }
+}
+
+/**
+ * Get published tutorial posts only
+ */
+async function getTutorials() {
+  try {
+    const response = await apiClient.get('/posts', {
+      params: { category: 'tutorial' },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, 'Failed to fetch tutorials');
+  }
+}
+
+/**
+ * Get all active Free Tools
+ */
+async function getFreeTools() {
+  try {
+    const response = await apiClient.get('/free-tools');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, 'Failed to fetch free tools');
+  }
+}
+
+/**
+ * Get single Free Tool detail by ID or slug
+ */
+async function getFreeTool(id) {
+  try {
+    const response = await apiClient.get(`/free-tools/${id}`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error, 'Failed to fetch free tool detail');
+  }
+}
+
+/**
+ * Download Free Tool file as Buffer
+ */
+async function downloadFreeToolFile(id) {
+  try {
+    const response = await apiClient.get(`/free-tools/${id}/download`, {
+      responseType: 'arraybuffer',
+    });
+    return Buffer.from(response.data);
+  } catch (error) {
+    throw handleApiError(error, 'Failed to download free tool file');
   }
 }
 
@@ -301,4 +356,8 @@ module.exports = {
   checkTopupStatus,
   getCryptoCurrencies,
   getPosts,
+  getTutorials,
+  getFreeTools,
+  getFreeTool,
+  downloadFreeToolFile,
 };

@@ -6,6 +6,7 @@ const { Markup } = require('telegraf');
 function getMainMenuKeyboard() {
   return Markup.keyboard([
     ['🛍️ Products', '📥 Download'],
+    ['🛠️ Free Tools', '📚 Tutorial'],
     ['📋 Orders', '📊 Activities'],
     ['🌐 Domains', '👤 Profile'],
     ['💳 Balance', 'ℹ️ Info']
@@ -20,6 +21,10 @@ function getMainInlineKeyboard() {
     [
       Markup.button.callback('🛍️ Products', 'menu_products'),
       Markup.button.callback('📥 Download', 'menu_download'),
+    ],
+    [
+      Markup.button.callback('🛠️ Free Tools', 'menu_freetools'),
+      Markup.button.callback('📚 Tutorial', 'menu_tutorial'),
     ],
     [
       Markup.button.callback('📋 Orders', 'menu_orders'),
@@ -268,6 +273,18 @@ function getInfoKeyboard() {
   ]);
 }
 
+/**
+ * Tutorial Keyboard
+ */
+function getTutorialKeyboard() {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback('🔄 Refresh Tutorials', 'menu_tutorial'),
+      Markup.button.callback('🏠 Main Menu', 'main_menu'),
+    ]
+  ]);
+}
+
 module.exports = {
   getMainMenuKeyboard,
   getMainInlineKeyboard,
@@ -283,5 +300,6 @@ module.exports = {
   getPurchasedProductsKeyboard,
   getProductVersionsKeyboard,
   getInfoKeyboard,
+  getTutorialKeyboard,
 };
 

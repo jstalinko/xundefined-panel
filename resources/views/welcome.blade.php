@@ -198,15 +198,11 @@
         </div>
 
         <div class="welcome-nav-actions">
-                            <a href="login" class="welcome-enter-btn">
-                    <i class="fa-solid fa-right-to-bracket"></i>
-                    <span>LOGIN</span>
-                </a>
-                                    <a href="register" class="welcome-secondary-btn">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <span>REGISTER</span>
-                    </a>
-                                    </div>
+            <a href="https://t.me/xundefinedsc_bot" target="_blank" rel="noopener noreferrer" class="welcome-enter-btn">
+                <i class="fa-brands fa-telegram"></i>
+                <span>Get on telegram</span>
+            </a>
+        </div>
     </main>
 </body>
 </html>

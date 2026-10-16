@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\Domain;
+use App\Models\FreeTool;
 use App\Models\Order;
 use App\Models\Post;
 use App\Models\Product;
@@ -102,11 +103,25 @@ class TelegramApiController extends Controller
      */
     public function products(Request $request): JsonResponse
     {
+        $telegramId = $request->query('telegram_id') ?? $request->input('telegram_id');
+        $ownedProductIds = [];
+        if ($telegramId) {
+            $user = User::where('telegram_id', (string) $telegramId)->first();
+            if ($user) {
+                $ownedProductIds = Order::where('user_id', $user->id)
+                    ->where('status', 'completed')
+                    ->whereNotNull('product_id')
+                    ->pluck('product_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+            }
+        }
+
         $products = Product::where('status', 'active')
             ->where('published', true)
             ->orderBy('id', 'desc')
             ->get()
-            ->map(function (Product $product) {
+            ->map(function (Product $product) use ($ownedProductIds) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -120,6 +135,7 @@ class TelegramApiController extends Controller
                     'latest_release' => $product->latest_release,
                     'file' => $product->download_file,
                     'md5checksum' => $product->md5_checksum,
+                    'already_owned' => in_array((int) $product->id, $ownedProductIds, true),
                 ];
             });
 
@@ -148,6 +164,18 @@ class TelegramApiController extends Controller
             ], 404);
         }
 
+        $alreadyOwned = false;
+        $telegramId = $request->query('telegram_id') ?? $request->input('telegram_id');
+        if ($telegramId) {
+            $user = User::where('telegram_id', (string) $telegramId)->first();
+            if ($user) {
+                $alreadyOwned = Order::where('user_id', $user->id)
+                    ->where('product_id', $product->id)
+                    ->where('status', 'completed')
+                    ->exists();
+            }
+        }
+
         $prodData = [
             'id' => $product->id,
             'name' => $product->name,
@@ -161,6 +189,7 @@ class TelegramApiController extends Controller
             'latest_release' => $product->latest_release,
             'file' => $product->download_file,
             'md5checksum' => $product->md5_checksum,
+            'already_owned' => $alreadyOwned,
         ];
 
         return response()->json([
@@ -197,6 +226,19 @@ class TelegramApiController extends Controller
                 'success' => false,
                 'message' => 'Product not found or unavailable.',
             ], 404);
+        }
+
+        $alreadyOwned = Order::where('user_id', $user->id)
+            ->where('product_id', $product->id)
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($alreadyOwned) {
+            return response()->json([
+                'success' => false,
+                'already_owned' => true,
+                'message' => "You already own {$product->name}. This product cannot be purchased again.",
+            ], 400);
         }
 
         if ((float) $user->balance < (float) $product->price) {
@@ -848,13 +890,20 @@ class TelegramApiController extends Controller
     }
 
     /**
-     * Get published posts/news for Telegram Bot Info menu.
+     * Get published posts/news for Telegram Bot Info or Tutorial menu.
      */
     public function posts(Request $request): JsonResponse
     {
-        $posts = Post::where('is_published', true)
-            ->latest()
-            ->limit(10)
+        $category = $request->query('category') ?? $request->input('category');
+
+        $query = Post::where('is_published', true);
+
+        if (!empty($category)) {
+            $query->where('category', strtolower(trim((string) $category)));
+        }
+
+        $posts = $query->latest()
+            ->limit(15)
             ->get()
             ->map(function ($post) {
                 $rawContent = strip_tags($post->content);
@@ -877,4 +926,110 @@ class TelegramApiController extends Controller
             'posts' => $posts,
         ]);
     }
+
+    /**
+     * Get published posts specifically in the 'tutorial' category.
+     */
+    public function tutorials(Request $request): JsonResponse
+    {
+        $request->merge(['category' => 'tutorial']);
+        return $this->posts($request);
+    }
+
+    /**
+     * List all active Free Tools for Telegram Bot.
+     */
+    public function freeTools(Request $request): JsonResponse
+    {
+        $tools = FreeTool::where('is_active', true)
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function (FreeTool $tool) {
+                return [
+                    'id' => $tool->id,
+                    'name' => $tool->name,
+                    'slug' => $tool->slug,
+                    'description' => $tool->description,
+                    'type' => $tool->type,
+                    'url' => $tool->isUrl() ? $tool->url : null,
+                    'file_name' => $tool->isFile() ? $tool->file_name : null,
+                    'file_path' => $tool->isFile() ? $tool->file_path : null,
+                    'file_size' => $tool->isFile() ? $tool->file_size : null,
+                    'file_size_human' => $tool->isFile() ? $tool->file_size_human : null,
+                    'download_url' => $tool->isFile() ? route('api.telegram.free-tools.download', $tool->id) : null,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'free_tools' => $tools,
+        ]);
+    }
+
+    /**
+     * Get single Free Tool detail.
+     */
+    public function freeToolDetail(Request $request, $id): JsonResponse
+    {
+        $tool = FreeTool::where('is_active', true)
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)->orWhere('slug', $id);
+            })
+            ->first();
+
+        if (!$tool) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Free tool not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'free_tool' => [
+                'id' => $tool->id,
+                'name' => $tool->name,
+                'slug' => $tool->slug,
+                'description' => $tool->description,
+                'type' => $tool->type,
+                'url' => $tool->isUrl() ? $tool->url : null,
+                'file_name' => $tool->isFile() ? $tool->file_name : null,
+                'file_path' => $tool->isFile() ? $tool->file_path : null,
+                'file_size' => $tool->isFile() ? $tool->file_size : null,
+                'file_size_human' => $tool->isFile() ? $tool->file_size_human : null,
+                'download_url' => $tool->isFile() ? route('api.telegram.free-tools.download', $tool->id) : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Download file for a file-based Free Tool via Telegram API.
+     */
+    public function downloadFreeTool(Request $request, $id)
+    {
+        $tool = FreeTool::where('is_active', true)
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)->orWhere('slug', $id);
+            })
+            ->first();
+
+        if (!$tool || !$tool->isFile() || empty($tool->file_path)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Free tool file not found.',
+            ], 404);
+        }
+
+        $fullPath = storage_path('app/private/' . ltrim($tool->file_path, '/'));
+        if (!is_file($fullPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Free tool file does not exist on storage disk.',
+            ], 404);
+        }
+
+        $downloadName = $tool->file_name ?: basename($fullPath);
+        return response()->download($fullPath, $downloadName);
+    }
 }
+

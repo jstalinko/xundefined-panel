@@ -103,6 +103,13 @@
                 </div>
 
                 <div class="cyber-nav-item">
+                    <a href="{{ route('free-tool.index') }}" class="cyber-nav-link {{ request()->routeIs('free-tool*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        <span>Free Tools</span>
+                    </a>
+                </div>
+
+                <div class="cyber-nav-item">
                     <a href="{{ route('domain.index') }}" class="cyber-nav-link {{ request()->routeIs('domain*') ? 'active' : '' }}">
                         <i class="fa-solid fa-globe"></i>
                         <span>Domains</span>

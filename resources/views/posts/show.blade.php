@@ -23,6 +23,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         .public-news-nav {
@@ -43,6 +44,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
         }
 
         .public-news-brand {
@@ -50,11 +52,13 @@
             align-items: center;
             gap: 12px;
             text-decoration: none;
+            min-width: 0;
         }
 
         .public-brand-logo {
             width: 38px;
             height: 38px;
+            flex-shrink: 0;
             background: radial-gradient(circle, var(--red-primary) 0%, #1a0006 100%);
             border: 1px solid var(--red-primary);
             box-shadow: 0 0 15px var(--red-glow);
@@ -72,18 +76,48 @@
             font-weight: 800;
             letter-spacing: 0.08em;
             color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .public-brand-title span {
             color: var(--red-primary);
         }
 
+        .public-news-nav-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
         .public-news-container {
             max-width: 900px;
             width: 100%;
+            box-sizing: border-box;
             margin: 36px auto 60px;
             padding: 0 20px;
             flex: 1;
+        }
+
+        .public-back-row {
+            margin-bottom: 20px;
+        }
+
+        .public-back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color var(--transition-fast);
+        }
+
+        .public-back-link:hover {
+            color: #ffffff;
         }
 
         .public-article-card {
@@ -93,6 +127,7 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 16px var(--red-glow-soft);
             padding: 36px 32px;
             position: relative;
+            box-sizing: border-box;
         }
 
         .article-category-badge {
@@ -131,12 +166,14 @@
 
         .article-title-heading {
             font-family: 'Orbitron', 'JetBrains Mono', var(--font-mono);
-            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+            font-size: clamp(1.35rem, 4vw, 2.4rem);
             font-weight: 800;
             color: #ffffff;
-            line-height: 1.25;
+            line-height: 1.3;
             letter-spacing: 0.03em;
             margin-bottom: 24px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .article-divider {
@@ -146,6 +183,21 @@
             box-shadow: 0 0 10px var(--red-glow);
         }
 
+        .article-featured-image {
+            margin-bottom: 28px;
+            border: 1px solid var(--red-border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            max-height: 420px;
+        }
+
+        .article-featured-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
         .article-body-content {
             font-family: var(--font-sans);
             font-size: 1.05rem;
@@ -153,6 +205,7 @@
             color: #e5e5e5;
             white-space: pre-line;
             word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .article-body-content p {
@@ -168,6 +221,37 @@
             margin-top: 40px;
             padding-top: 24px;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .article-dispatch-status {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .article-actions-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .recent-news-section {
+            margin-top: 48px;
+        }
+
+        .recent-news-heading {
+            font-family: 'Orbitron', var(--font-mono);
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.06em;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .recent-news-grid {
@@ -186,6 +270,7 @@
             color: inherit;
             transition: all var(--transition-fast);
             display: block;
+            box-sizing: border-box;
         }
 
         .recent-news-card:hover {
@@ -202,6 +287,153 @@
             font-size: 0.78rem;
             color: var(--text-muted);
             background: rgba(5, 5, 5, 0.95);
+        }
+
+        @media (max-width: 768px) {
+            .public-news-nav-inner {
+                padding: 12px 16px;
+            }
+
+            .public-brand-logo {
+                width: 34px;
+                height: 34px;
+                font-size: 0.95rem;
+            }
+
+            .public-brand-title {
+                font-size: 0.98rem;
+            }
+
+            .public-news-container {
+                margin: 20px auto 40px;
+                padding: 0 14px;
+            }
+
+            .public-back-row {
+                margin-bottom: 14px;
+            }
+
+            .public-article-card {
+                padding: 22px 18px;
+            }
+
+            .article-meta-row {
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            .article-category-badge {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+
+            .article-timestamp {
+                font-size: 0.74rem;
+            }
+
+            .article-title-heading {
+                font-size: clamp(1.22rem, 5.2vw, 1.65rem);
+                margin-bottom: 18px;
+            }
+
+            .article-divider {
+                margin: 18px 0 22px;
+            }
+
+            .article-featured-image {
+                margin-bottom: 20px;
+                max-height: 280px;
+            }
+
+            .article-body-content {
+                font-size: 0.96rem;
+                line-height: 1.72;
+            }
+
+            .article-actions-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 14px;
+                margin-top: 28px;
+                padding-top: 18px;
+            }
+
+            .article-actions-buttons {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .article-actions-buttons .cyber-btn {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .recent-news-section {
+                margin-top: 32px;
+            }
+
+            .recent-news-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin-top: 14px;
+            }
+
+            .recent-news-card {
+                padding: 14px 16px;
+            }
+
+            .public-footer {
+                padding: 18px 14px;
+                font-size: 0.7rem;
+                line-height: 1.5;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .public-news-nav-inner {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+
+            .public-news-brand {
+                gap: 8px;
+            }
+
+            .public-brand-logo {
+                width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+
+            .public-brand-title {
+                font-size: 0.85rem;
+                letter-spacing: 0.04em;
+            }
+
+            .public-news-nav-actions {
+                gap: 6px;
+            }
+
+            .public-news-nav-actions .cyber-btn-sm {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+
+            .public-news-container {
+                margin: 16px auto 32px;
+                padding: 0 12px;
+            }
+
+            .public-article-card {
+                padding: 18px 14px;
+            }
+
+            .article-actions-buttons {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -223,7 +455,7 @@
                     </div>
                 </a>
 
-                <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="public-news-nav-actions">
                     <a href="https://t.me/xingzhengx" target="_blank" rel="noopener noreferrer" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="text-decoration: none;">
                         <i class="fa-brands fa-telegram" style="color: #48cae4;"></i>
                         <span>TELEGRAM</span>
@@ -238,8 +470,8 @@
 
         {{-- Main Article Container --}}
         <main class="public-news-container">
-            <div style="margin-bottom: 20px;">
-                <a href="/" style="color: var(--text-secondary); text-decoration: none; font-family: var(--font-mono); font-size: 0.82rem; display: inline-flex; align-items: center; gap: 8px;">
+            <div class="public-back-row">
+                <a href="/" class="public-back-link">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>BACK TO MAIN TERMINAL</span>
                 </a>
@@ -273,8 +505,8 @@
 
                 {{-- Featured Image if provided --}}
                 @if (!empty($post->image) && $post->image !== '/no-image.svg')
-                    <div style="margin-bottom: 28px; border: 1px solid var(--red-border); border-radius: var(--radius-sm); overflow: hidden; max-height: 420px;">
-                        <img src="{{ $post->image }}" alt="{{ $post->title }}" style="width: 100%; height: auto; display: block; object-fit: cover;">
+                    <div class="article-featured-image">
+                        <img src="{{ $post->image }}" alt="{{ $post->title }}">
                     </div>
                 @endif
 
@@ -285,12 +517,12 @@
 
                 {{-- Article Actions Footer --}}
                 <div class="article-actions-bar">
-                    <div style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+                    <div class="article-dispatch-status">
                         <span class="status-dot online"></span>
                         <span>OFFICIAL XUNDEFINED INTEL DISPATCH</span>
                     </div>
 
-                    <div style="display: flex; gap: 10px;">
+                    <div class="article-actions-buttons">
                         <a href="https://t.me/xingzhengx" target="_blank" rel="noopener noreferrer" class="cyber-btn cyber-btn-secondary cyber-btn-sm" style="text-decoration: none;">
                             <i class="fa-brands fa-telegram" style="color: #48cae4;"></i>
                             <span>CONTACT SUPPORT</span>
@@ -305,8 +537,8 @@
 
             {{-- Recent Posts List --}}
             @if(isset($recentPosts) && $recentPosts->count() > 0)
-                <div style="margin-top: 48px;">
-                    <div style="font-family: 'Orbitron', var(--font-mono); font-size: 1rem; font-weight: 700; color: #ffffff; letter-spacing: 0.06em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <div class="recent-news-section">
+                    <div class="recent-news-heading">
                         <i class="fa-solid fa-newspaper" style="color: var(--red-primary);"></i>
                         <span>MORE DISPATCHES & UPDATES</span>
                     </div>
@@ -322,7 +554,7 @@
                                         {{ $otherPost->created_at ? $otherPost->created_at->format('M d') : '' }}
                                     </span>
                                 </div>
-                                <div style="font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 700; color: #ffffff; line-height: 1.4; margin-bottom: 6px;">
+                                <div style="font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 700; color: #ffffff; line-height: 1.4; margin-bottom: 6px; overflow-wrap: anywhere;">
                                     {{ Str::limit($otherPost->title, 60) }}
                                 </div>
                                 <div style="font-family: var(--font-mono); font-size: 0.72rem; color: #48cae4;">

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Activity;
 use App\Models\ActivityLog;
 use App\Models\Domain;
+use App\Models\FreeTool;
 use App\Models\Invitecode;
 use App\Models\Order;
 use App\Models\Post;
@@ -12,6 +13,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -134,7 +136,40 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 7. Seed Activities & Logs
+        // 7. Seed Free Tools
+        if (Schema::hasTable('free_tools') && FreeTool::count() === 0) {
+            FreeTool::create([
+                'name' => 'DNS & SSL Checker Tool',
+                'slug' => 'dns-ssl-checker-tool',
+                'description' => 'Online utility to inspect DNS records and SSL certificate status.',
+                'type' => FreeTool::TYPE_URL,
+                'url' => 'https://dnschecker.org',
+                'is_active' => true,
+            ]);
+
+            $freeToolsDir = storage_path('app/private/free-tools');
+            if (!is_dir($freeToolsDir)) {
+                @mkdir($freeToolsDir, 0755, true);
+            }
+            $sampleFile = 'xundefined-starter-wordlist.txt';
+            $samplePath = $freeToolsDir . DIRECTORY_SEPARATOR . $sampleFile;
+            if (!file_exists($samplePath)) {
+                @file_put_contents($samplePath, "# Xundefined Free Starter Utility List\nadmin\nlogin\nportal\napi\n");
+            }
+
+            FreeTool::create([
+                'name' => 'Starter Config & Wordlist (.txt)',
+                'slug' => 'starter-config-wordlist',
+                'description' => 'Sample configuration & endpoints reference text file.',
+                'type' => FreeTool::TYPE_FILE,
+                'file_path' => 'free-tools/' . $sampleFile,
+                'file_name' => $sampleFile,
+                'file_size' => file_exists($samplePath) ? filesize($samplePath) : 62,
+                'is_active' => true,
+            ]);
+        }
+
+        // 8. Seed Activities & Logs
         if (Activity::where('user_id', $user->id)->count() === 0) {
             Activity::create([
                 'user_id' => $user->id,

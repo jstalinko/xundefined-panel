@@ -414,4 +414,85 @@ class AdminPanelTest extends TestCase
             'status' => 'suspended',
         ]);
     }
+
+    public function test_admin_can_manage_free_tools_url_and_file_uploads(): void
+    {
+        // 1. Index page
+        $indexRes = $this->actingAs($this->admin)->get('/xingzheng-panel/free-tool');
+        $indexRes->assertStatus(200);
+        $indexRes->assertSee('FREE TOOLS REPOSITORY');
+
+        // 2. Create page
+        $createRes = $this->actingAs($this->admin)->get('/xingzheng-panel/free-tool/create');
+        $createRes->assertStatus(200);
+        $createRes->assertSee('CREATE NEW FREE TOOL');
+
+        // 3. Store URL type Free Tool
+        $storeUrlRes = $this->actingAs($this->admin)->post('/xingzheng-panel/free-tool', [
+            'name' => 'Online Whois Scanner',
+            'type' => 'url',
+            'url' => 'https://whois.domaintools.com',
+            'description' => 'Check domain whois records.',
+            'is_active' => '1',
+        ]);
+        $storeUrlRes->assertRedirect('/xingzheng-panel/free-tool');
+        $this->assertDatabaseHas('free_tools', [
+            'name' => 'Online Whois Scanner',
+            'type' => 'url',
+            'url' => 'https://whois.domaintools.com',
+        ]);
+
+        // 4. Store File type Free Tools (.txt, .zip, .rar, .tar.gz)
+        foreach (['wordlist.txt', 'toolkit.zip', 'archive.rar', 'bundle.tar.gz'] as $extFile) {
+            $uploaded = \Illuminate\Http\UploadedFile::fake()->createWithContent($extFile, 'sample tool content ' . $extFile);
+            $storeFileRes = $this->actingAs($this->admin)->post('/xingzheng-panel/free-tool', [
+                'name' => 'File Tool ' . $extFile,
+                'type' => 'file',
+                'file' => $uploaded,
+                'description' => 'Uploaded ' . $extFile,
+                'is_active' => '1',
+            ]);
+            $storeFileRes->assertRedirect('/xingzheng-panel/free-tool');
+            $this->assertDatabaseHas('free_tools', [
+                'name' => 'File Tool ' . $extFile,
+                'type' => 'file',
+                'file_name' => $extFile,
+            ]);
+        }
+
+        // 5. Disallowed file extension should fail validation
+        $badFile = \Illuminate\Http\UploadedFile::fake()->createWithContent('malware.exe', 'bad');
+        $badRes = $this->actingAs($this->admin)->post('/xingzheng-panel/free-tool', [
+            'name' => 'Invalid Tool',
+            'type' => 'file',
+            'file' => $badFile,
+        ]);
+        $badRes->assertSessionHasErrors('file');
+
+        // 6. Download file tool from admin panel
+        $tarTool = \App\Models\FreeTool::where('file_name', 'bundle.tar.gz')->firstOrFail();
+        $dlRes = $this->actingAs($this->admin)->get('/xingzheng-panel/free-tool/' . $tarTool->id . '/download');
+        $dlRes->assertStatus(200);
+        $dlRes->assertDownload('bundle.tar.gz');
+
+        // 7. Update & Delete Free Tool
+        $editRes = $this->actingAs($this->admin)->get('/xingzheng-panel/free-tool/' . $tarTool->id . '/edit');
+        $editRes->assertStatus(200);
+
+        $updateRes = $this->actingAs($this->admin)->put('/xingzheng-panel/free-tool/' . $tarTool->id, [
+            'name' => 'Updated TarGz Tool',
+            'type' => 'file',
+            'description' => 'Updated description',
+            'is_active' => '1',
+        ]);
+        $updateRes->assertRedirect('/xingzheng-panel/free-tool');
+        $this->assertDatabaseHas('free_tools', [
+            'id' => $tarTool->id,
+            'name' => 'Updated TarGz Tool',
+        ]);
+
+        $delRes = $this->actingAs($this->admin)->delete('/xingzheng-panel/free-tool/' . $tarTool->id);
+        $delRes->assertRedirect('/xingzheng-panel/free-tool');
+        $this->assertDatabaseMissing('free_tools', ['id' => $tarTool->id]);
+    }
 }

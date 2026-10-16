@@ -8,7 +8,8 @@ const { getProductDetailKeyboard, getConfirmPurchaseKeyboard, getBackToMenuKeybo
  */
 async function handleProducts(ctx) {
   try {
-    const data = await getProducts();
+    const telegramId = ctx.from ? ctx.from.id : null;
+    const data = await getProducts(telegramId);
     const products = data.products || [];
 
     if (products.length === 0) {
@@ -23,8 +24,11 @@ async function handleProducts(ctx) {
 
     const inlineButtons = products.map((prod) => {
       const price = Number(prod.price).toFixed(2);
+      const label = prod.already_owned
+        ? `✅ ${prod.name} ($${price} · Owned)`
+        : `${prod.name} ($${price})`;
       return [
-        Markup.button.callback(`${prod.name} ($${price})`, `prod_view_${prod.id}`)
+        Markup.button.callback(label, `prod_view_${prod.id}`)
       ];
     });
 
@@ -54,7 +58,8 @@ async function handleProducts(ctx) {
  */
 async function handleProductDetail(ctx, productId) {
   try {
-    const data = await getProduct(productId);
+    const telegramId = ctx.from ? ctx.from.id : null;
+    const data = await getProduct(productId, telegramId);
     const prod = data.product;
 
     if (!prod) {
@@ -68,7 +73,11 @@ async function handleProductDetail(ctx, productId) {
     let text = `📦 *${prod.name}*\n`;
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     text += `• *Price:* \`$${price} USD\`\n`;
-    text += `• *Available Version:* (${totalVersions} Version available)\n\n`;
+    text += `• *Available Version:* (${totalVersions} Version available)\n`;
+    if (prod.already_owned) {
+      text += `• *Status:* ✅ *Already Owned*\n`;
+    }
+    text += `\n`;
 
     if (prod.description) {
       const cleanDesc = prod.description.replace(/<[^>]*>?/gm, '').trim();
@@ -76,7 +85,9 @@ async function handleProductDetail(ctx, productId) {
     }
 
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `Select the action button below to purchase:`;
+    text += prod.already_owned
+      ? `✅ You already own this product. Access it from your Downloads menu:`
+      : `Select the action button below to purchase:`;
 
     const keyboard = getProductDetailKeyboard(prod);
 
@@ -102,8 +113,23 @@ async function handleProductDetail(ctx, productId) {
  */
 async function handleConfirmBuy(ctx, productId) {
   try {
-    const data = await getProduct(productId);
+    const telegramId = ctx.from ? ctx.from.id : null;
+    const data = await getProduct(productId, telegramId);
     const prod = data.product;
+
+    if (prod.already_owned) {
+      return ctx.editMessageText(
+        `✅ *ALREADY OWNED*\n━━━━━━━━━━━━━━━━━━━━\nYou already own *${prod.name}*. You cannot purchase this product again.\n\nGo to *Downloads* to download your files.`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('📥 My Downloads', 'menu_download')],
+            [Markup.button.callback('« Back to Product', `prod_view_${productId}`)],
+          ]),
+        }
+      );
+    }
+
     const user = ctx.state.user;
     const userBalance = user ? Number(user.balance) : 0;
     const prodPrice = Number(prod.price);
@@ -177,11 +203,18 @@ async function handleExecuteBuy(ctx, productId) {
   } catch (err) {
     console.error('handleExecuteBuy error:', err);
     const msg = err.data && err.data.message ? err.data.message : err.message;
+    const isAlreadyOwned = err.data && err.data.already_owned;
+    const buttons = isAlreadyOwned
+      ? [
+          [Markup.button.callback('📥 My Downloads', 'menu_download')],
+          [Markup.button.callback('« Back to Catalog', 'menu_products')],
+        ]
+      : [
+          [Markup.button.callback('🪙 Top Up Balance', 'bal_crypto_start')],
+          [Markup.button.callback('« Back to Catalog', 'menu_products')],
+        ];
     await ctx.reply(`❌ Purchase Failed: ${msg}`, {
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('🪙 Top Up Balance', 'bal_crypto_start')],
-        [Markup.button.callback('« Back to Catalog', 'menu_products')],
-      ]),
+      ...Markup.inlineKeyboard(buttons),
     });
   }
 }

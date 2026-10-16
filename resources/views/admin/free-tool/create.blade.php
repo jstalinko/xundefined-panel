@@ -1,0 +1,175 @@
+@extends('layouts.dashboard')
+
+@section('title', 'Add Free Tool - Admin')
+@section('page-title', 'ADD FREE TOOL')
+
+@section('content')
+<div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+        <a href="{{ route('admin.dashboard') }}" style="color: var(--text-secondary); text-decoration: none;">Admin Hub</a>
+        <span>/</span>
+        <a href="{{ route('free-tool.index') }}" style="color: var(--text-secondary); text-decoration: none;">Free Tools</a>
+        <span>/</span>
+        <span style="color: #ffffff;">Create</span>
+    </div>
+
+    <a href="{{ route('free-tool.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> BACK TO FREE TOOLS
+    </a>
+</div>
+
+{{-- Validation Errors --}}
+@if ($errors->any())
+    <div class="cyber-alert" role="alert" style="border-color: var(--red-primary); background: rgba(255, 23, 68, 0.1); margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation cyber-alert-icon" style="color: var(--red-primary);"></i>
+        <div class="cyber-alert-content">
+            <span class="cyber-alert-title" style="color: var(--red-primary);">VALIDATION ERROR</span>
+            <ul style="margin: 4px 0 0 16px; font-size: 0.82rem; color: #ff80ab;">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+@endif
+
+<form action="{{ route('free-tool.store') }}" method="POST" enctype="multipart/form-data" id="freeToolCreateForm">
+    @csrf
+
+    <div class="cyber-panel">
+        <div class="cyber-panel-header">
+            <div class="cyber-panel-title">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                CREATE NEW FREE TOOL
+            </div>
+            <span class="badge-status b-ok">FILE / URL</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;" class="split-grid">
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="name">
+                        <i class="fa-solid fa-signature"></i> TOOL NAME *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        class="cyber-input" 
+                        placeholder="e.g. Subdomain Scanner Wordlist or Online DNS Lookup" 
+                        value="{{ old('name') }}" 
+                        required
+                    >
+                </div>
+
+                {{-- Dynamic URL Input Section --}}
+                <div class="cyber-form-group" id="urlInputGroup" style="margin-top: 16px; {{ old('type', 'url') === 'url' ? '' : 'display: none;' }}">
+                    <label class="cyber-label" for="url">
+                        <i class="fa-solid fa-link"></i> TOOL URL *
+                    </label>
+                    <input 
+                        type="url" 
+                        id="url" 
+                        name="url" 
+                        class="cyber-input" 
+                        placeholder="https://example.com/tool" 
+                        value="{{ old('url') }}"
+                    >
+                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">
+                        Enter full URL starting with <code>https://</code> or <code>http://</code>.
+                    </div>
+                </div>
+
+                {{-- Dynamic File Upload Section --}}
+                <div class="cyber-form-group" id="fileInputGroup" style="margin-top: 16px; {{ old('type', 'url') === 'file' ? '' : 'display: none;' }}">
+                    <label class="cyber-label" for="file">
+                        <i class="fa-solid fa-file-arrow-up"></i> UPLOAD TOOL FILE (.txt, .zip, .rar, .tar.gz) *
+                    </label>
+                    <input 
+                        type="file" 
+                        id="file" 
+                        name="file" 
+                        class="cyber-input" 
+                        accept=".txt,.zip,.rar,.tar.gz,.gz"
+                        style="padding: 10px;"
+                    >
+                    <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">
+                        Allowed formats: <code>.txt</code>, <code>.zip</code>, <code>.rar</code>, <code>.tar.gz</code> (Max 50 MB).
+                    </div>
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 16px;">
+                    <label class="cyber-label" for="description">
+                        <i class="fa-solid fa-align-left"></i> DESCRIPTION
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        class="cyber-input" 
+                        rows="5" 
+                        placeholder="Describe what this free tool does and how users can use it..."
+                    >{{ old('description') }}</textarea>
+                </div>
+            </div>
+
+            <div>
+                <div class="cyber-form-group">
+                    <label class="cyber-label" for="type">
+                        <i class="fa-solid fa-layer-group"></i> TOOL TYPE *
+                    </label>
+                    <select id="type" name="type" class="cyber-input" required onchange="toggleFreeToolType(this.value)">
+                        <option value="url" {{ old('type', 'url') === 'url' ? 'selected' : '' }}>URL (External Link)</option>
+                        <option value="file" {{ old('type') === 'file' ? 'selected' : '' }}>FILE (Upload .txt, .zip, .rar, .tar.gz)</option>
+                    </select>
+                </div>
+
+                <div class="cyber-form-group" style="margin-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #ffffff; font-family: var(--font-mono); font-size: 0.86rem;">
+                        <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} style="width: 16px; height: 16px; accent-color: var(--red-primary);">
+                        <span>ACTIVE (Visible in Telegram Bot)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+            <a href="{{ route('free-tool.index') }}" class="cyber-btn cyber-btn-secondary cyber-btn-md">
+                CANCEL
+            </a>
+            <button type="submit" class="cyber-btn cyber-btn-primary cyber-btn-md">
+                <i class="fa-solid fa-check"></i> SAVE FREE TOOL
+            </button>
+        </div>
+    </div>
+</form>
+@endsection
+
+@push('scripts')
+<script>
+    function toggleFreeToolType(type) {
+        const urlGroup = document.getElementById('urlInputGroup');
+        const fileGroup = document.getElementById('fileInputGroup');
+        const urlInput = document.getElementById('url');
+        const fileInput = document.getElementById('file');
+
+        if (type === 'file') {
+            if (urlGroup) urlGroup.style.display = 'none';
+            if (fileGroup) fileGroup.style.display = '';
+            if (urlInput) urlInput.removeAttribute('required');
+            if (fileInput) fileInput.setAttribute('required', 'required');
+        } else {
+            if (urlGroup) urlGroup.style.display = '';
+            if (fileGroup) fileGroup.style.display = 'none';
+            if (urlInput) urlInput.setAttribute('required', 'required');
+            if (fileInput) fileInput.removeAttribute('required');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const typeSelect = document.getElementById('type');
+        if (typeSelect) {
+            toggleFreeToolType(typeSelect.value);
+        }
+    });
+</script>
+@endpush

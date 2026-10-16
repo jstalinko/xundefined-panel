@@ -142,6 +142,30 @@ class TelegramBotAndLegacyTest extends TestCase
         $this->assertCount(1, $ordersResponse->json('orders'));
         $firstOrd = $ordersResponse->json('orders.0');
         $this->assertArrayNotHasKey('license_key', $firstOrd);
+
+        // Attempt to purchase the same product again -> should be blocked
+        $userBefore = User::where('telegram_id', $uniqueId)->first();
+        $balanceBefore = (float) $userBefore->balance;
+
+        $duplicateBuyResponse = $this->postJson('/api/telegram/orders/buy', [
+            'telegram_id' => $uniqueId,
+            'product_id' => $product->id,
+        ]);
+        $duplicateBuyResponse->assertStatus(400);
+        $duplicateBuyResponse->assertJson([
+            'success' => false,
+            'already_owned' => true,
+        ]);
+
+        // Balance and order count must remain unchanged
+        $userAfter = User::where('telegram_id', $uniqueId)->first();
+        $this->assertEquals($balanceBefore, (float) $userAfter->balance);
+        $this->assertEquals(1, Order::where('user_id', $userAfter->id)->where('product_id', $product->id)->count());
+
+        // Product detail with telegram_id should report already_owned = true
+        $detailOwnedResponse = $this->getJson("/api/telegram/products/{$product->id}?telegram_id={$uniqueId}");
+        $detailOwnedResponse->assertStatus(200);
+        $detailOwnedResponse->assertJsonPath('product.already_owned', true);
     }
 
     public function test_coinpayments_real_topup_and_ipn_flow(): void
@@ -405,6 +429,58 @@ class TelegramBotAndLegacyTest extends TestCase
 
         $this->getJson("/api/telegram/products/{$unpublishedProduct->id}")
             ->assertStatus(404);
+    }
+
+    public function test_api_telegram_free_tools_and_tutorials(): void
+    {
+        // 1. Tutorials endpoint only returns published posts with 'tutorial' category
+        Post::create([
+            'title' => 'How to Setup Custom Node',
+            'slug' => 'how-to-setup-custom-node',
+            'category' => 'tutorial',
+            'content' => 'Step by step tutorial guide.',
+            'is_published' => true,
+        ]);
+
+        Post::create([
+            'title' => 'General Platform News',
+            'slug' => 'general-platform-news',
+            'category' => 'news',
+            'content' => 'General news item.',
+            'is_published' => true,
+        ]);
+
+        $tutRes = $this->getJson('/api/telegram/posts?category=tutorial');
+        $tutRes->assertStatus(200);
+        $tutPosts = $tutRes->json('posts');
+        $this->assertNotEmpty($tutPosts);
+        foreach ($tutPosts as $post) {
+            $this->assertEquals('tutorial', $post['category']);
+        }
+
+        $directTutRes = $this->getJson('/api/telegram/tutorials');
+        $directTutRes->assertStatus(200);
+        foreach ($directTutRes->json('posts') as $post) {
+            $this->assertEquals('tutorial', $post['category']);
+        }
+
+        // 2. Free Tools API endpoints
+        $toolsRes = $this->getJson('/api/telegram/free-tools');
+        $toolsRes->assertStatus(200);
+        $toolsRes->assertJson(['success' => true]);
+        $freeTools = $toolsRes->json('free_tools');
+        $this->assertNotEmpty($freeTools);
+
+        $fileTool = collect($freeTools)->firstWhere('type', 'file');
+        $this->assertNotNull($fileTool);
+
+        $detailRes = $this->getJson('/api/telegram/free-tools/' . $fileTool['id']);
+        $detailRes->assertStatus(200);
+        $detailRes->assertJsonPath('free_tool.id', $fileTool['id']);
+
+        $dlRes = $this->get('/api/telegram/free-tools/' . $fileTool['id'] . '/download');
+        $dlRes->assertStatus(200);
+        $dlRes->assertDownload($fileTool['file_name']);
     }
 }
 

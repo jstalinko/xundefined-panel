@@ -57,6 +57,12 @@ Route::prefix('telegram')->group(function () {
     Route::get('/balance/topup-status/{invoice}', [TelegramApiController::class, 'checkTopupStatus']);
     Route::get('/balance/currencies', [TelegramApiController::class, 'currencies']);
 
-    // Information / Posts / News
+    // Information / Posts / News / Tutorials
     Route::get('/posts', [TelegramApiController::class, 'posts'])->name('api.telegram.posts');
+    Route::get('/tutorials', [TelegramApiController::class, 'tutorials'])->name('api.telegram.tutorials');
+
+    // Free Tools
+    Route::get('/free-tools', [TelegramApiController::class, 'freeTools'])->name('api.telegram.free-tools');
+    Route::get('/free-tools/{id}', [TelegramApiController::class, 'freeToolDetail'])->name('api.telegram.free-tools.detail');
+    Route::get('/free-tools/{id}/download', [TelegramApiController::class, 'downloadFreeTool'])->name('api.telegram.free-tools.download');
 });

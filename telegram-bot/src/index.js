@@ -23,6 +23,12 @@ const {
 } = require('./handlers/domains');
 const { handleProfile } = require('./handlers/profile');
 const { handleInfo } = require('./handlers/info');
+const { handleTutorial } = require('./handlers/tutorial');
+const {
+  handleFreeTools,
+  handleFreeToolDetail,
+  handleDownloadFreeToolFile,
+} = require('./handlers/freetools');
 const {
   handleBalance,
   handleCryptoStart,
@@ -56,6 +62,9 @@ bot.command('start', handleStart);
 bot.command('menu', handleStart);
 bot.command('products', handleProducts);
 bot.command('download', handleDownload);
+bot.command('freetools', handleFreeTools);
+bot.command('tutorial', handleTutorial);
+bot.command('tutorials', handleTutorial);
 bot.command('orders', handleOrders);
 bot.command('activities', handleActivities);
 bot.command('domains', handleDomains);
@@ -71,6 +80,8 @@ bot.command('help', async (ctx) => {
 • /menu - Display interactive menu
 • /products - Browse script websites
 • /download - Access purchased script files
+• /freetools - Access free tools (files & URLs)
+• /tutorial - Read tutorials & setup guides
 • /orders - View your purchase history
 • /activities - View recent account activity
 • /domains - Manage authorized script domains
@@ -87,6 +98,10 @@ bot.command('help', async (ctx) => {
 bot.hears(['🛍️ Products', 'Products', 'products'], handleProducts);
 // Download
 bot.hears(['📥 Download', 'Download', 'download'], handleDownload);
+// Free Tools
+bot.hears(['🛠️ Free Tools', 'Free Tools', 'free tools', 'freetools'], handleFreeTools);
+// Tutorial
+bot.hears(['📚 Tutorial', 'Tutorial', 'tutorial', 'tutorials'], handleTutorial);
 // Orders
 bot.hears(['📋 Orders', 'Orders', 'orders'], handleOrders);
 // Activities
@@ -114,6 +129,30 @@ bot.action('menu_products', async (ctx) => {
 bot.action('menu_download', async (ctx) => {
   await ctx.answerCbQuery();
   return handleDownload(ctx);
+});
+
+bot.action('menu_freetools', async (ctx) => {
+  await ctx.answerCbQuery();
+  return handleFreeTools(ctx);
+});
+
+bot.action(/^ft_view_(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const toolId = ctx.match[1];
+  return handleFreeToolDetail(ctx, toolId);
+});
+
+bot.action(/^ft_dl_(\d+)$/, async (ctx) => {
+  try {
+    await ctx.answerCbQuery();
+  } catch (cbErr) {}
+  const toolId = ctx.match[1];
+  return handleDownloadFreeToolFile(ctx, toolId);
+});
+
+bot.action('menu_tutorial', async (ctx) => {
+  await ctx.answerCbQuery();
+  return handleTutorial(ctx);
 });
 
 bot.action('menu_orders', async (ctx) => {
